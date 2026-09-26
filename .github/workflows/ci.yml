@@ -1,0 +1,56 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npx playwright test --list
+
+  e2e:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      FRONTEND_BASE_URL: ${{ vars.FRONTEND_BASE_URL }}
+      API_BASE_URL: ${{ vars.API_BASE_URL }}
+      E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+      E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
+      E2E_INVOICE_ID: ${{ vars.E2E_INVOICE_ID }}
+      E2E_PROJECT_ID: ${{ vars.E2E_PROJECT_ID }}
+      E2E_PAYMENT_AMOUNT: ${{ vars.E2E_PAYMENT_AMOUNT }}
+      E2E_RESTRICTED_USER_EMAIL: ${{ secrets.E2E_RESTRICTED_USER_EMAIL }}
+      E2E_RESTRICTED_USER_PASSWORD: ${{ secrets.E2E_RESTRICTED_USER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-evidence
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
