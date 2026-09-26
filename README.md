@@ -50,10 +50,11 @@ references and consume its outstanding balance.
    npm run test:e2e
    ```
 
-The `E2E` GitHub Actions workflow runs contract/type validation on pull
-requests and executes the state-changing deployed suite only when manually
-dispatched against the protected `staging` environment. Configure URLs and
-record IDs as environment variables, and account credentials as secrets.
+The `Tests CI` GitHub Actions caller delegates to the reusable workflow in the
+infrastructure repository. It runs contract/type validation on pull requests
+and executes the state-changing deployed suite only when manually dispatched
+against the protected `staging` environment. Configure URLs and record IDs as
+environment variables, and account credentials as secrets.
 
 To run only API/authorization checks without the browser UI assertion:
 
