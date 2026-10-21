@@ -38,7 +38,22 @@ export const test = base.extend<{
   adminHeaders: async ({ request }, use) => {
     const { email, password } = adminCredentials();
     const token = await login(request, email, password);
-    await use(bearer(token));
+    const headers = bearer(token);
+    // Check the server's current role before mutations or browser navigation.
+    // A successful login alone does not grant management permissions.
+    const profile = await expectOk<{ role?: string | null; roles?: string[] }>(
+      await request.get(`${apiBaseUrl()}/auth/me`, { headers }),
+    );
+    const roles = [profile.role, ...(profile.roles ?? [])]
+      .filter((role): role is string => typeof role === "string")
+      .map(role => role.trim().toUpperCase().replace(/[\s-]+/g, "_"));
+    expect(
+      roles,
+      `Management E2E requires an ADMIN account; the configured account has role(s): ${roles.join(", ") || "unassigned"}. ` +
+        "Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD in tests/.env to an existing ADMIN account. " +
+        "When both are blank, E2E_USER_EMAIL and E2E_USER_PASSWORD are used instead.",
+    ).toContain("ADMIN");
+    await use(headers);
   },
   records: async ({ request, adminHeaders }, use) => {
     const created: { resource: Resource; id: string }[] = [];
