@@ -17,14 +17,18 @@ test.describe("Leads", () => {
     await dialog.getByRole("button", { name: "Capture Lead", exact: true }).click();
     const lead = records.track("leads", await uiRecord<LeadRecord>(await createdResponse));
     await expect(dialog).not.toBeVisible();
-    await page.getByPlaceholder("Search leads...", { exact: true }).fill(name);
+    const leadFilter = page.getByRole("textbox", {
+      name: "Filter leads by name, email or phone",
+      exact: true,
+    });
+    await leadFilter.fill(name);
     const detailResponse = mutation(page, `/leads/${lead.id}`, "GET");
     await page.getByRole("button").filter({ has: page.getByText(name, { exact: true }) }).click();
     await uiRecord(await detailResponse);
     await page.getByRole("button", { name: "Edit lead", exact: true }).click();
     const updatedName = `${name} Updated`;
     await dialog.getByLabel("Customer name", { exact: false }).fill(updatedName);
-    await dialog.getByLabel("Status", { exact: true }).selectOption("QUALIFIED");
+    await dialog.getByRole("combobox", { name: "Status", exact: true }).selectOption("QUALIFIED");
     const editedResponse = mutation(page, `/leads/${lead.id}`, "PATCH");
     await dialog.getByRole("button", { name: "Save changes", exact: true }).click();
     await uiRecord(await editedResponse);
@@ -41,7 +45,7 @@ test.describe("Leads", () => {
     expect(persisted).toMatchObject({ customerName: updatedName, status: "QUALIFIED" });
     expect(persisted.notes).toEqual(expect.arrayContaining([expect.objectContaining({ content: note })]));
     await page.reload();
-    await page.getByPlaceholder("Search leads...", { exact: true }).fill(updatedName);
+    await leadFilter.fill(updatedName);
     await page.getByRole("button").filter({ has: page.getByText(updatedName, { exact: true }) }).click();
     await expect(page.getByText(note, { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Delete lead", exact: true }).click();
