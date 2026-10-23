@@ -6,6 +6,7 @@
   "scripts": {
     "test": "playwright test",
     "test:e2e": "playwright test",
+    "test:e2e:management": "playwright test user-management leads clients management-authorization",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "test:quotations": "playwright test e2e/quotations",
