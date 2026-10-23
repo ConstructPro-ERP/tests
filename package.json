@@ -8,6 +8,9 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
+    "test:quotations": "playwright test e2e/quotations",
+    "test:quotations:frontend": "playwright test e2e/quotations/quotations-frontend.spec.ts",
+    "test:quotations:backend": "playwright test e2e/quotations/quotations-backend.spec.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
