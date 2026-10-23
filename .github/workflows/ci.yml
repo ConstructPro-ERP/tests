@@ -18,9 +18,4 @@ jobs:
       invoice_id: ${{ vars.E2E_INVOICE_ID }}
       project_id: ${{ vars.E2E_PROJECT_ID }}
       payment_amount: ${{ vars.E2E_PAYMENT_AMOUNT || '1' }}
-      client_project_id: ${{ vars.E2E_CLIENT_PROJECT_ID }}
-      client_document_id: ${{ vars.E2E_CLIENT_DOCUMENT_ID }}
-      client_quotation_id: ${{ vars.E2E_CLIENT_QUOTATION_ID }}
-      other_client_project_id: ${{ vars.E2E_OTHER_CLIENT_PROJECT_ID }}
-      other_client_document_id: ${{ vars.E2E_OTHER_CLIENT_DOCUMENT_ID }}
     secrets: inherit

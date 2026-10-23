@@ -8,7 +8,7 @@ interface ApiEnvelope<T> {
 export function apiBaseUrl(): string {
   const configured = process.env.API_BASE_URL;
   if (!configured) {
-    throw new Error("API_BASE_URL is required. Copy .env to .env and set the deployed gateway URL.");
+    throw new Error("API_BASE_URL is required. Copy .env.example to .env and set the deployed gateway URL.");
   }
   const base = configured.replace(/\/+$/, "");
   return base.endsWith("/api") ? base : `${base}/api`;
