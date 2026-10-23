@@ -20,6 +20,35 @@ The finance test records a small real payment against disposable demo data. Use
 a dedicated test invoice; repeated runs intentionally create unique payment
 references and consume its outstanding balance.
 
+## Client portal coverage
+
+`e2e/client-portal.spec.ts` signs in through the API gateway and checks the
+client-scoped project, milestone, document, quotation, and document-download
+APIs. It also verifies anonymous/staff denial and cross-client isolation. These
+checks are read-only; use two dedicated staging client accounts linked to
+separate demo records.
+
+Configure these names locally or as protected staging CI variables/secrets:
+
+| Variable | Storage | Purpose |
+| --- | --- | --- |
+| `E2E_CLIENT_USER_EMAIL` | Secret | First client account email |
+| `E2E_CLIENT_USER_PASSWORD` | Secret | First client account password |
+| `E2E_CLIENT_PROJECT_ID` | Variable | First client's project UUID |
+| `E2E_CLIENT_DOCUMENT_ID` | Variable | Active document shared with the first client |
+| `E2E_CLIENT_QUOTATION_ID` | Variable | First client's quotation UUID |
+| `E2E_OTHER_CLIENT_USER_EMAIL` | Secret | Second client account email |
+| `E2E_OTHER_CLIENT_USER_PASSWORD` | Secret | Second client account password |
+| `E2E_OTHER_CLIENT_PROJECT_ID` | Variable | Second client's project UUID |
+| `E2E_OTHER_CLIENT_DOCUMENT_ID` | Variable | Active document belonging to the second client |
+| `E2E_STAFF_USER_EMAIL` | Secret | Active staff account email |
+| `E2E_STAFF_USER_PASSWORD` | Secret | Active staff account password |
+
+Do not put credentials in the repository or test output. The current frontend
+does not have a client-portal route, and the backend portal API does not expose
+invoice/payment views; browser navigation and those sections need corresponding
+product APIs/pages before they can be covered here.
+
 ## Prerequisites
 
 - Node.js 22+
@@ -40,7 +69,7 @@ references and consume its outstanding balance.
    ```
 3. **Configure the environment:**
    ```bash
-   cp .env.example .env
+   cp .env .env
    ```
    Playwright loads `.env` locally. In CI, configure the same names in the
    repository secret store. The suite does not commit or print credentials.
