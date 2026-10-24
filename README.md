@@ -1,5 +1,10 @@
 # ConstructPro ERP - Tests
 
+[![CI](https://github.com/ConstructPro-ERP/tests/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/ConstructPro-ERP/tests/actions/workflows/ci.yml)
+
+**Live application:** https://construct-pro-teal.vercel.app/  
+**API documentation (Swagger):** https://construct-pro-api-gateway.vercel.app/api/docs
+
 ## Project Description
 
 This repository contains the Integration and End-to-End (E2E) test suites for the **ConstructPro ERP** system. It ensures that the various modules (Sales, Project Management, Finance, Analytics) work seamlessly together.
