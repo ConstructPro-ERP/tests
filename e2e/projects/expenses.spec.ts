@@ -60,13 +60,13 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
     await c.createExpense(project.id, {
       amount: "3.00",
       category: "LABOUR",
-      expenseDate: "2026-09-20T00:00:00.000Z",
+      expenseDate: "2026-10-05T00:00:00.000Z",
     });
     const response = await c.get<PageResult<Expense>>(
       `/projects/${project.id}/expenses`,
       {
         category: "MATERIAL",
-        fromDate: "2026-10-01",
+        fromDate: "2026-10-10",
         toDate: "2026-10-31",
         page: 1,
         limit: 1,

@@ -124,14 +124,24 @@ test.describe("Project management — validation and resource boundaries", () =>
       });
       expect(response.status(), await response.text()).toBe(400);
     }
-    expect(
-      (
-        await c.request.patch(url(`/tasks/${task.id}/status`), {
-          headers: c.headers,
-          data: { status: "BLOCKED" },
-        })
-      ).status(),
-    ).toBe(400);
+    const blocked = await c.patch<Task>(`/tasks/${task.id}/status`, {
+      status: "BLOCKED",
+    });
+    expect(blocked.status).toBe("BLOCKED");
+
+    const restored = await c.patch<Task>(`/tasks/${task.id}/status`, {
+      status: "TODO",
+    });
+    expect(restored.status).toBe("TODO");
+
+    const invalidStatus = await c.request.patch(
+      url(`/tasks/${task.id}/status`),
+      {
+        headers: c.headers,
+        data: { status: "INVALID_STATUS" },
+      },
+    );
+    expect(invalidStatus.status(), await invalidStatus.text()).toBe(400);
     const invalidTaskQueries: Record<string, string | number | boolean>[] = [
       { projectId: "bad" },
       { limit: 101 },

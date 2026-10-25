@@ -32,7 +32,7 @@ export interface Task {
   taskName: string;
   milestoneId: string | null;
   assignedToId: string | null;
-  status: "TODO" | "IN_PROGRESS" | "COMPLETED";
+  status: "TODO" | "IN_PROGRESS" | "COMPLETED" | "BLOCKED";
 }
 export interface Expense {
   id: string;
@@ -224,6 +224,30 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
       }
     }
     for (const projectId of projectIds) {
+      try {
+        const projectResponse = await request.get(
+          url(`/projects/${projectId}`),
+          { headers },
+        );
+
+        // The test may have already deleted this project.
+        if (projectResponse.status() === 404) {
+          continue;
+        }
+
+        if (!projectResponse.ok()) {
+          errors.push(
+            `/projects/${projectId}: cleanup existence check HTTP ${projectResponse.status()}`,
+          );
+          continue;
+        }
+      } catch (error) {
+        errors.push(
+          `/projects/${projectId}: cleanup existence check failed: ${String(error)}`,
+        );
+        continue;
+      }
+
       await sweep(projectId, "task");
       await sweep(projectId, "expense");
       await sweep(projectId, "milestone");
