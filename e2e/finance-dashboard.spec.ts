@@ -1,23 +1,21 @@
 import { expect, test } from "@playwright/test";
-import {
-  apiBaseUrl,
-  bearer,
-  expectOk,
-  login,
-  requiredEnv,
-} from "./support/api";
+import { apiBaseUrl, expectOk, requiredEnv } from "./support/api";
+import { authStatePath, savedHeaders } from "./support/auth-state";
 import type {
   DashboardSummary,
   Invoice,
   PaymentResult,
 } from "./support/contracts";
 
+test.use({
+  storageState: authStatePath("root", "primary"),
+});
+
 test.describe.serial("Finance to dashboard workflow", () => {
   test("recording a payment keeps invoice balances and dashboard KPIs consistent", async ({
     request,
   }) => {
-    const token = await login(request);
-    const headers = bearer(token);
+    const headers = savedHeaders("root", "primary");
     const invoiceId = requiredEnv("E2E_INVOICE_ID");
 
     const beforeInvoice = await expectOk<Invoice>(
@@ -104,21 +102,18 @@ test.describe.serial("Finance to dashboard workflow", () => {
     page,
   }) => {
     const invoiceId = requiredEnv("E2E_INVOICE_ID");
-    await page.goto("/login");
-    await page.getByLabel("Email").fill(requiredEnv("E2E_USER_EMAIL"));
-    await page.getByLabel("Password").fill(requiredEnv("E2E_USER_PASSWORD"));
-    await page.getByRole("button", { name: "Sign In" }).click();
-    await expect(page).toHaveURL(/\/modules/);
 
     const invoiceResponse = await page.request.get(
       `${apiBaseUrl()}/invoices/${invoiceId}`,
       {
-        headers: bearer(await login(page.request)),
+        headers: savedHeaders("root", "primary"),
       },
     );
+
     const invoice = await expectOk<Invoice>(invoiceResponse);
 
     await page.goto("/dashboard/finance");
+
     await expect(
       page
         .getByText(invoice.invoiceNumber ?? "Draft invoice", { exact: true })

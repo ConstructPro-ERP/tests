@@ -1,12 +1,5 @@
-import {
-  test,
-  expect,
-  bearer,
-  expectOk,
-  login,
-  type Project,
-  url,
-} from "./fixture";
+import { test, expect, expectOk, type Project, url } from "./fixture";
+import { savedHeaders } from "../support/auth-state";
 
 const protectedPaths = [
   "/projects",
@@ -41,13 +34,7 @@ test.describe("Project resources — role authorization", () => {
       !process.env.E2E_ACCOUNTANT_EMAIL || !process.env.E2E_ACCOUNTANT_PASSWORD,
       "Set E2E_ACCOUNTANT_EMAIL and E2E_ACCOUNTANT_PASSWORD.",
     );
-    const accountant = bearer(
-      await login(
-        request,
-        process.env.E2E_ACCOUNTANT_EMAIL!,
-        process.env.E2E_ACCOUNTANT_PASSWORD!,
-      ),
-    );
+    const accountant = savedHeaders("projects", "accountant");
     expect(
       (await request.get(url("/projects"), { headers: accountant })).status(),
     ).toBe(200);
@@ -112,13 +99,7 @@ test.describe("Project resources — role authorization", () => {
         !process.env.E2E_PROJECT_MANAGER_PASSWORD,
       "Set E2E_PROJECT_MANAGER_EMAIL and E2E_PROJECT_MANAGER_PASSWORD.",
     );
-    const manager = bearer(
-      await login(
-        request,
-        process.env.E2E_PROJECT_MANAGER_EMAIL!,
-        process.env.E2E_PROJECT_MANAGER_PASSWORD!,
-      ),
-    );
+    const manager = savedHeaders("projects", "manager");
     const project = await c.createProject();
     expect(
       (
@@ -169,13 +150,7 @@ test.describe("Project resources — role authorization", () => {
       !process.env.E2E_ACCOUNTANT_EMAIL || !process.env.E2E_ACCOUNTANT_PASSWORD,
       "Set E2E_ACCOUNTANT_EMAIL and E2E_ACCOUNTANT_PASSWORD.",
     );
-    const accountant = bearer(
-      await login(
-        request,
-        process.env.E2E_ACCOUNTANT_EMAIL!,
-        process.env.E2E_ACCOUNTANT_PASSWORD!,
-      ),
-    );
+    const accountant = savedHeaders("projects", "accountant");
     expect(
       (
         await request.get(url("/document-categories"), { headers: accountant })

@@ -89,12 +89,58 @@ test.describe("Leads", () => {
     expect(persisted.notes).toEqual(
       expect.arrayContaining([expect.objectContaining({ content: note })]),
     );
+
+    const searchResult = await expectOk<{
+      data: LeadRecord[];
+      meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
+    }>(
+      await request.get(`${apiBaseUrl()}/leads`, {
+        headers: adminHeaders,
+        params: {
+          search: updatedName,
+          page: 1,
+          limit: 100,
+        },
+      }),
+    );
+
+    expect(
+      searchResult.data.some((item) => item.id === lead.id),
+      "Backend search must return the updated lead.",
+    ).toBe(true);
+
+    const refreshedListResponse = mutation(page, "/leads", "GET");
+
     await page.reload();
-    await leadFilter.fill(updatedName);
-    await page
-      .getByRole("button")
-      .filter({ has: page.getByText(updatedName, { exact: true }) })
-      .click();
+
+    await uiRecord(await refreshedListResponse);
+
+    const refreshedFilter = page.getByRole("textbox", {
+      name: "Filter leads by name, email or phone",
+      exact: true,
+    });
+
+    await expect(refreshedFilter).toBeVisible();
+
+    await refreshedFilter.fill(updatedName);
+
+    const updatedLeadButton = page.getByRole("button").filter({
+      has: page.getByText(updatedName, { exact: true }),
+    });
+
+    await expect(updatedLeadButton).toBeVisible();
+
+    const refreshedDetailResponse = mutation(page, `/leads/${lead.id}`, "GET");
+
+    await updatedLeadButton.click();
+
+    await uiRecord(await refreshedDetailResponse);
+
     await expect(page.getByText(note, { exact: true })).toBeVisible();
     await page
       .getByRole("button", { name: "Delete lead", exact: true })

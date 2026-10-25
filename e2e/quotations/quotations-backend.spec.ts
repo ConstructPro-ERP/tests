@@ -1,36 +1,20 @@
 import { test, expect } from "@playwright/test";
-import {
-  apiBaseUrl,
-  bearer,
-  expectOk,
-  login,
-  requiredEnv,
-} from "../support/api";
+import { apiBaseUrl, expectOk, requiredEnv } from "../support/api";
+import { savedHeaders } from "../support/auth-state";
 import type { Quotation } from "../support/contracts";
 import { round2 } from "./quotation.fixtures";
 
 test.describe
   .serial("Quotation Service — Backend Integration API Suite", () => {
-  let token: string;
   let testQuotationId: string;
   let leadId: string;
 
-  test.beforeAll(async ({ request }) => {
-    // Acquire Token using existing login helper
-    token = await login(
-      request,
-      process.env.E2E_USER_EMAIL || process.env.TEST_ADMIN_EMAIL,
-      process.env.E2E_USER_PASSWORD || process.env.TEST_ADMIN_PASSWORD,
-    );
-
-    leadId =
-      process.env.E2E_LEAD_ID ||
-      process.env.TEST_LEAD_ID ||
-      "00000000-0000-0000-0000-000000000001";
+  test.beforeAll(() => {
+    leadId = requiredEnv("E2E_LEAD_ID");
   });
 
   const authHeaders = () => ({
-    ...bearer(token),
+    ...savedHeaders("quotations", "admin"),
     "Content-Type": "application/json",
   });
 
@@ -119,9 +103,24 @@ test.describe
     );
 
     expect(response.status()).toBe(200);
-    const body = await response.json();
-    const items = Array.isArray(body) ? body : body.items || body.data;
-    expect(Array.isArray(items)).toBeTruthy();
+
+    const result = (await response.json()) as {
+      success: boolean;
+      data: Quotation[];
+      meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
+    };
+
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.data)).toBe(true);
+    expect(result.data.length).toBeLessThanOrEqual(10);
+    expect(result.meta.page).toBe(1);
+    expect(result.meta.limit).toBe(10);
+    expect(result.meta.total).toBeGreaterThanOrEqual(result.data.length);
   });
 
   // BE-04: Update Line Items & Dynamic Recalculation
@@ -192,58 +191,109 @@ test.describe
   });
 
   // BE-06: State Machine: Approval & Project Conversion
-  test("BE-06: PATCH /quotations/:id/approve approves quotation and transitions toward conversion", async ({
+  test("BE-06: submits and directly approves the quotation", async ({
     request,
   }) => {
     expect(testQuotationId).toBeDefined();
 
-    const approvePayload = {
-      projectName: "Automated Integration Test Project",
-      location: "Colombo Commercial District",
-      budget: 1205.0,
-    };
-
-    const response = await request.patch(
-      `${apiBaseUrl()}/quotations/${testQuotationId}/approve`,
+    const submitResponse = await request.patch(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/submit`,
       {
         headers: authHeaders(),
-        data: approvePayload,
+        data: {},
       },
     );
 
-    expect(response.status()).toBe(200);
-    const body = await expectOk<Quotation>(response);
-    expect(["APPROVED", "CONVERTED"]).toContain(body.status);
+    expect(submitResponse.status(), await submitResponse.text()).toBe(200);
+
+    const submitted = await expectOk<Quotation>(submitResponse);
+    expect(submitted.status).toBe("PENDING_APPROVAL");
+
+    const approveResponse = await request.patch(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/direct-approve`,
+      {
+        headers: authHeaders(),
+        data: {},
+      },
+    );
+
+    expect(approveResponse.status(), await approveResponse.text()).toBe(200);
+
+    const approved = await expectOk<Quotation>(approveResponse);
+
+    expect(approved.status).toBe("APPROVED");
+    expect(approved.id).toBe(testQuotationId);
   });
 
   // BE-07: Guardrail Against Duplicate Conversion
-  test("BE-07: GUARD: Duplicate conversion attempt is blocked", async ({
-    request,
-  }) => {
+  test("BE-07: blocks duplicate project conversion", async ({ request }) => {
+    test.skip(
+      process.env.E2E_ALLOW_PERSISTENT_LIFECYCLE_WRITES !== "true",
+      "Requires a disposable E2E database.",
+    );
+
     expect(testQuotationId).toBeDefined();
+
+    const actor = await expectOk<{ id: string }>(
+      await request.get(`${apiBaseUrl()}/auth/me`, {
+        headers: authHeaders(),
+      }),
+    );
+
+    const conversionResponse = await request.patch(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/approve`,
+      {
+        headers: authHeaders(),
+        data: {
+          projectName: `E2E Converted Project ${Date.now()}`,
+          location: "Colombo",
+          startDate: "2026-10-01T00:00:00.000Z",
+          endDate: "2027-10-01T00:00:00.000Z",
+          projectManagerId: actor.id,
+          budget: 1205,
+        },
+      },
+    );
+
+    expect(conversionResponse.status(), await conversionResponse.text()).toBe(
+      200,
+    );
+
+    const conversion = await expectOk<{
+      quotation: Quotation;
+      projectId: string;
+      projectStatus: string;
+    }>(conversionResponse);
+
+    expect(conversion.quotation.status).toBe("CONVERTED");
+    expect(conversion.projectId).toBeTruthy();
 
     const duplicateResponse = await request.patch(
       `${apiBaseUrl()}/quotations/${testQuotationId}/approve`,
       {
         headers: authHeaders(),
         data: {
-          projectName: "Illegal Duplicate Project Conversion Attempt",
+          projectName: "Duplicate conversion attempt",
+          startDate: "2026-10-01T00:00:00.000Z",
+          projectManagerId: actor.id,
         },
       },
     );
 
-    expect([400, 409]).toContain(duplicateResponse.status());
-    const errBody = await duplicateResponse.json();
-    const errorText = JSON.stringify(errBody);
-    expect(errorText).toMatch(
-      /(already converted|invalid|status|transition|cannot approve)/i,
+    expect(duplicateResponse.status()).toBe(409);
+
+    expect(JSON.stringify(await duplicateResponse.json())).toMatch(
+      /ALREADY_CONVERTED|already converted/i,
     );
   });
 
   // BE-08: Resilient PDF Generation / Download
-  test("BE-08: GET /quotations/:id/pdf returns valid document URL or PDF stream", async ({
-    request,
-  }) => {
+  test("BE-08: returns a valid quotation PDF URL", async ({ request }) => {
+    test.skip(
+      process.env.E2E_ENABLE_QUOTATION_PDF !== "true",
+      "Quotation PDF integration is disabled.",
+    );
+
     expect(testQuotationId).toBeDefined();
 
     const response = await request.get(
@@ -253,16 +303,15 @@ test.describe
       },
     );
 
-    expect(response.ok()).toBeTruthy();
-    const contentType = response.headers()["content-type"] || "";
+    expect(response.status(), await response.text()).toBe(200);
 
-    if (contentType.includes("application/json")) {
-      const body = await response.json();
-      const pdfUrl = body.url || body.pdfUrl || body.data?.url;
-      expect(typeof pdfUrl).toBe("string");
-    } else {
-      expect(contentType).toContain("application/pdf");
-    }
+    const result = await expectOk<{ pdfUrl: string }>(response);
+
+    expect(typeof result.pdfUrl).toBe("string");
+
+    const pdfUrl = new URL(result.pdfUrl);
+
+    expect(["http:", "https:"]).toContain(pdfUrl.protocol);
   });
 
   // BE-09: RBAC & Role Restriction Enforcement
@@ -277,21 +326,20 @@ test.describe
 
     // 2. Restricted Role -> 403 Forbidden (if restricted credentials provided)
     if (
-      process.env.E2E_RESTRICTED_USER_EMAIL &&
-      process.env.E2E_RESTRICTED_USER_PASSWORD
+      process.env.E2E_QUOTATION_RESTRICTED_USER_EMAIL &&
+      process.env.E2E_QUOTATION_RESTRICTED_USER_PASSWORD
     ) {
-      const restrictedToken = await login(
-        request,
-        process.env.E2E_RESTRICTED_USER_EMAIL,
-        process.env.E2E_RESTRICTED_USER_PASSWORD,
-      );
       const forbidden = await request.post(`${apiBaseUrl()}/quotations`, {
         headers: {
-          ...bearer(restrictedToken),
+          ...savedHeaders("quotations", "restricted"),
           "Content-Type": "application/json",
         },
-        data: { leadId, items: [] },
+        data: {
+          leadId,
+          items: [],
+        },
       });
+
       expect(forbidden.status()).toBe(403);
     }
   });

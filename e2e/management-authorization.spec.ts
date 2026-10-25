@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { apiBaseUrl, bearer, login, requiredEnv } from "./support/api";
+import { apiBaseUrl } from "./support/api";
+import { savedHeaders } from "./support/auth-state";
 
 test.describe("User, lead and client authorization", () => {
   for (const resource of ["users", "leads", "clients"]) {
@@ -24,13 +25,7 @@ test.describe("User, lead and client authorization", () => {
       !process.env.E2E_ACCOUNTANT_EMAIL || !process.env.E2E_ACCOUNTANT_PASSWORD,
       "Set E2E_ACCOUNTANT_EMAIL and E2E_ACCOUNTANT_PASSWORD for ACCOUNTANT role checks.",
     );
-    const headers = bearer(
-      await login(
-        request,
-        requiredEnv("E2E_ACCOUNTANT_EMAIL"),
-        requiredEnv("E2E_ACCOUNTANT_PASSWORD"),
-      ),
-    );
+    const headers = savedHeaders("root", "accountant");
     expect(
       (await request.get(`${apiBaseUrl()}/users`, { headers })).status(),
     ).toBe(403);

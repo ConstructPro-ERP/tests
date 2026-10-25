@@ -5,8 +5,8 @@ import {
   type APIRequestContext,
   type APIResponse,
 } from "@playwright/test";
-import { apiBaseUrl, bearer, expectOk, login } from "../support/api";
-import { adminCredentials } from "../support/admin-credentials";
+import { apiBaseUrl, bearer, expectOk } from "../support/api";
+import { savedHeaders } from "../support/auth-state";
 
 export interface Project {
   id: string;
@@ -79,9 +79,7 @@ export const uuid = () => randomUUID();
 // Run against an isolated E2E environment, never against production.
 export const test = base.extend<{ projectContext: ProjectContext }>({
   projectContext: async ({ request }, use) => {
-    const { email, password } = adminCredentials();
-    const token = await login(request, email, password);
-    const headers = bearer(token);
+    const headers = savedHeaders("projects", "admin");
     const me = await expectOk<{ id: string; role: string }>(
       await request.get(url("/auth/me"), { headers }),
     );
@@ -278,4 +276,4 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
   },
 });
 
-export { expect, bearer, login, expectOk };
+export { expect, expectOk };

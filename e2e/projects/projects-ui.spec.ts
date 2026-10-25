@@ -3,8 +3,6 @@ import {
   expect,
   unique,
   url,
-  bearer,
-  login,
   expectOk,
   type PageResult,
   type Project,
@@ -13,6 +11,7 @@ import {
   type Expense,
 } from "./fixture";
 import { loginAdminUI } from "../support/management";
+import { authStatePath, savedHeaders } from "../support/auth-state";
 
 test.describe("Project UI — real frontend and gateway smoke", () => {
   test("project list and every project resource tab render for an Admin", async ({
@@ -504,87 +503,144 @@ test.describe("Project documents — browser workflow with dedicated storage fix
 });
 
 test.describe("Project UI — role-specific permissions", () => {
-  test("Accountant sees read-only task/milestone/document controls and may add expenses", async ({
-    page,
-    projectContext: c,
-  }) => {
-    const email = process.env.E2E_ACCOUNTANT_EMAIL;
-    const password = process.env.E2E_ACCOUNTANT_PASSWORD;
-    test.skip(
-      !process.env.FRONTEND_BASE_URL || !email || !password,
-      "Requires FRONTEND_BASE_URL and Accountant credentials.",
-    );
-    const project = await c.createProject();
-    await page.goto("/login");
-    await page.getByLabel("Email", { exact: true }).fill(email!);
-    await page.getByLabel("Password", { exact: true }).fill(password!);
-    await page.getByRole("button", { name: "Sign In", exact: true }).click();
-    await expect(page).toHaveURL(/\/modules(?:[/?#]|$)/);
-    await page.goto(`/dashboard/projects/${project.id}`);
-    await expect(
-      page.getByRole("heading", { name: project.projectName }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Edit project" }),
-    ).toHaveCount(0);
-    const tabs = page.getByRole("navigation", { name: "Project sections" });
-    for (const section of ["Tasks", "Milestones"]) {
-      await tabs.getByRole("button", { name: section }).click();
+  test.describe("Accountant", () => {
+    test.use({
+      storageState: authStatePath("projects", "accountant"),
+    });
+
+    test("Accountant sees read-only task/milestone/document controls and may add expenses", async ({
+      page,
+      projectContext: c,
+    }) => {
+      test.skip(
+        !process.env.FRONTEND_BASE_URL ||
+          !process.env.E2E_ACCOUNTANT_EMAIL ||
+          !process.env.E2E_ACCOUNTANT_PASSWORD,
+        "Requires frontend URL and Accountant credentials.",
+      );
+
+      const project = await c.createProject();
+
+      await page.goto(`/dashboard/projects/${project.id}`);
+
+      await expect(
+        page.getByRole("heading", {
+          name: project.projectName,
+        }),
+      ).toBeVisible();
+
       await expect(
         page.getByRole("button", {
-          name: `Add ${section === "Tasks" ? "task" : "milestone"}`,
+          name: "Edit project",
         }),
       ).toHaveCount(0);
-    }
-    await tabs.getByRole("button", { name: "Documents" }).click();
-    await expect(
-      page.getByRole("button", { name: "Upload document" }),
-    ).toHaveCount(0);
-    await tabs.getByRole("button", { name: "Expenses" }).click();
-    await expect(
-      page.getByRole("button", { name: "Add expense" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Delete", exact: true }),
-    ).toHaveCount(0);
+
+      const tabs = page.getByRole("navigation", {
+        name: "Project sections",
+      });
+
+      for (const section of ["Tasks", "Milestones"]) {
+        await tabs.getByRole("button", { name: section }).click();
+
+        await expect(
+          page.getByRole("button", {
+            name: `Add ${section === "Tasks" ? "task" : "milestone"}`,
+          }),
+        ).toHaveCount(0);
+      }
+
+      await tabs.getByRole("button", { name: "Documents" }).click();
+
+      await expect(
+        page.getByRole("button", {
+          name: "Upload document",
+        }),
+      ).toHaveCount(0);
+
+      await tabs.getByRole("button", { name: "Expenses" }).click();
+
+      await expect(
+        page.getByRole("button", {
+          name: "Add expense",
+        }),
+      ).toBeVisible();
+
+      await expect(
+        page.getByRole("button", {
+          name: "Delete",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+    });
   });
 
-  test("assigned Project Manager can manage tasks and milestones through the UI", async ({
-    page,
-    request,
-    projectContext: c,
-  }) => {
-    const email = process.env.E2E_PROJECT_MANAGER_EMAIL;
-    const password = process.env.E2E_PROJECT_MANAGER_PASSWORD;
-    test.skip(
-      !process.env.FRONTEND_BASE_URL || !email || !password,
-      "Requires FRONTEND_BASE_URL and Project Manager credentials.",
-    );
-    const token = await login(request, email!, password!);
-    const me = await expectOk<{ id: string; role: string }>(
-      await request.get(url("/auth/me"), { headers: bearer(token) }),
-    );
-    expect(me.role).toBe("PROJECT_MANAGER");
-    const project = await c.createProject({ projectManagerId: me.id });
-    await page.goto("/login");
-    await page.getByLabel("Email", { exact: true }).fill(email!);
-    await page.getByLabel("Password", { exact: true }).fill(password!);
-    await page.getByRole("button", { name: "Sign In", exact: true }).click();
-    await expect(page).toHaveURL(/\/modules(?:[/?#]|$)/);
-    await page.goto(`/dashboard/projects/${project.id}`);
-    await expect(
-      page.getByRole("heading", { name: project.projectName }),
-    ).toBeVisible();
-    const tabs = page.getByRole("navigation", { name: "Project sections" });
-    await tabs.getByRole("button", { name: "Milestones" }).click();
-    await expect(
-      page.getByRole("button", { name: "Add milestone" }),
-    ).toBeVisible();
-    await tabs.getByRole("button", { name: "Tasks" }).click();
-    await expect(page.getByRole("button", { name: "Add task" })).toBeVisible();
-    await tabs.getByRole("button", { name: "Expenses" }).click();
-    await expect(page.getByRole("button", { name: "Add expense" })).toHaveCount(
-      0,
-    );
+  test.describe("Project Manager", () => {
+    test.use({
+      storageState: authStatePath("projects", "manager"),
+    });
+
+    test("assigned Project Manager can manage tasks and milestones through the UI", async ({
+      page,
+      request,
+      projectContext: c,
+    }) => {
+      test.skip(
+        !process.env.FRONTEND_BASE_URL ||
+          !process.env.E2E_PROJECT_MANAGER_EMAIL ||
+          !process.env.E2E_PROJECT_MANAGER_PASSWORD,
+        "Requires frontend URL and Project Manager credentials.",
+      );
+
+      const me = await expectOk<{
+        id: string;
+        role: string;
+      }>(
+        await request.get(url("/auth/me"), {
+          headers: savedHeaders("projects", "manager"),
+        }),
+      );
+
+      expect(me.role).toBe("PROJECT_MANAGER");
+
+      const project = await c.createProject({
+        projectManagerId: me.id,
+      });
+
+      await page.goto(`/dashboard/projects/${project.id}`);
+
+      await expect(
+        page.getByRole("heading", {
+          name: project.projectName,
+        }),
+      ).toBeVisible();
+
+      const tabs = page.getByRole("navigation", {
+        name: "Project sections",
+      });
+
+      await tabs.getByRole("button", { name: "Milestones" }).click();
+
+      await expect(
+        page.getByRole("button", {
+          name: "Add milestone",
+        }),
+      ).toBeVisible();
+
+      await tabs.getByRole("button", { name: "Tasks" }).click();
+
+      await expect(
+        page.getByRole("button", {
+          name: "Add task",
+        }),
+      ).toBeVisible();
+
+      await tabs.getByRole("button", { name: "Expenses" }).click();
+
+      await expect(
+        page.getByRole("button", {
+          name: "Add expense",
+        }),
+      ).toHaveCount(0);
+    });
   });
 });

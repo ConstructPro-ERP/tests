@@ -3,8 +3,6 @@ import {
   expect,
   url,
   unique,
-  bearer,
-  login,
   expectOk,
   uuid,
   type Project,
@@ -12,6 +10,7 @@ import {
   type Task,
   type Expense,
 } from "./fixture";
+import { savedHeaders } from "../support/auth-state";
 
 interface Quotation {
   id: string;
@@ -44,11 +43,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
     request,
   }) => {
     test.setTimeout(180_000);
-    const email =
-      process.env.E2E_ADMIN_EMAIL?.trim() || process.env.E2E_USER_EMAIL!;
-    const password =
-      process.env.E2E_ADMIN_PASSWORD?.trim() || process.env.E2E_USER_PASSWORD!;
-    const headers = bearer(await login(request, email, password));
+    const headers = savedHeaders("projects", "admin");
     const me = await expectOk<{ id: string; role: string }>(
       await request.get(url("/auth/me"), { headers }),
     );
@@ -225,11 +220,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
   test("planning project can be cancelled; terminal status rejects further changes", async ({
     request,
   }) => {
-    const email =
-      process.env.E2E_ADMIN_EMAIL?.trim() || process.env.E2E_USER_EMAIL!;
-    const password =
-      process.env.E2E_ADMIN_PASSWORD?.trim() || process.env.E2E_USER_PASSWORD!;
-    const headers = bearer(await login(request, email, password));
+    const headers = savedHeaders("projects", "admin");
     const me = await expectOk<{ id: string; role: string }>(
       await request.get(url("/auth/me"), { headers }),
     );

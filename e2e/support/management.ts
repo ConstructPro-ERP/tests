@@ -5,8 +5,8 @@ import {
   type Page,
   type Response,
 } from "@playwright/test";
-import { apiBaseUrl, bearer, expectOk, login, requiredEnv } from "./api";
-import { adminCredentials } from "./admin-credentials";
+import { apiBaseUrl, bearer, expectOk, requiredEnv } from "./api";
+import { savedHeaders } from "./auth-state";
 
 export interface UserRecord {
   id: string;
@@ -42,30 +42,8 @@ export const test = base.extend<{
     track: <T extends { id: string }>(resource: Resource, record: T) => T;
   };
 }>({
-  adminHeaders: async ({ request }, use) => {
-    const { email, password } = adminCredentials();
-    const token = await login(request, email, password);
-    const headers = bearer(token);
-    // Check the server's current role before mutations or browser navigation.
-    // A successful login alone does not grant management permissions.
-    const profile = await expectOk<{ role?: string | null; roles?: string[] }>(
-      await request.get(`${apiBaseUrl()}/auth/me`, { headers }),
-    );
-    const roles = [profile.role, ...(profile.roles ?? [])]
-      .filter((role): role is string => typeof role === "string")
-      .map((role) =>
-        role
-          .trim()
-          .toUpperCase()
-          .replace(/[\s-]+/g, "_"),
-      );
-    expect(
-      roles,
-      `Management E2E requires an ADMIN account; the configured account has role(s): ${roles.join(", ") || "unassigned"}. ` +
-        "Set E2E_ADMIN_EMAIL and E2E_ADMIN_PASSWORD in tests/.env to an existing ADMIN account. " +
-        "When both are blank, E2E_USER_EMAIL and E2E_USER_PASSWORD are used instead.",
-    ).toContain("ADMIN");
-    await use(headers);
+  adminHeaders: async ({}, use) => {
+    await use(savedHeaders("root", "admin"));
   },
   records: async ({ request, adminHeaders }, use) => {
     const created: { resource: Resource; id: string }[] = [];
@@ -104,13 +82,25 @@ export const test = base.extend<{
 });
 
 export async function loginAdminUI(page: Page) {
-  const { email, password } = adminCredentials();
   requiredEnv("FRONTEND_BASE_URL");
-  await page.goto("/login");
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign In", exact: true }).click();
+
+  // The context already has its directory's Admin storageState.
+  await page.goto("/modules");
   await expect(page).toHaveURL(/\/modules(?:[/?#]|$)/);
+
+  const token = await page.evaluate(() =>
+    localStorage.getItem("construct_pro_access_token"),
+  );
+
+  expect(token).toBeTruthy();
+
+  const profile = await expectOk<{ role: string }>(
+    await page.request.get(`${apiBaseUrl()}/auth/me`, {
+      headers: bearer(token!),
+    }),
+  );
+
+  expect(profile.role).toBe("ADMIN");
 }
 
 // Register before clicking so fast responses cannot be missed. Match the method

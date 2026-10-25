@@ -1,14 +1,13 @@
 import {
   test,
   expect,
-  bearer,
   expectOk,
-  login,
   url,
   type Project,
   type Task,
   type Milestone,
 } from "./fixture";
+import { savedHeaders } from "../support/auth-state";
 
 // Requires a disposable, ACTIVE Project Manager account. Manager authorization
 // is checked both for an owned project and one assigned to a different user.
@@ -23,7 +22,7 @@ test.describe("Project Manager — assigned and unassigned project permissions",
       !email || !password,
       "Configure E2E_PROJECT_MANAGER_EMAIL and E2E_PROJECT_MANAGER_PASSWORD.",
     );
-    const manager = bearer(await login(request, email!, password!));
+    const manager = savedHeaders("projects", "manager");
     const me = await expectOk<{ id: string; role: string }>(
       await request.get(url("/auth/me"), { headers: manager }),
     );
