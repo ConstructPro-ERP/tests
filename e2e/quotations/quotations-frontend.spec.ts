@@ -1,284 +1,472 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Route } from "@playwright/test";
+import { apiBaseUrl } from "../support/api";
 import { mockLeads, mockInitialQuotations } from "./quotation.fixtures";
 
-test.describe("Quotations Dashboard - Frontend Integration (Mocked Network)", () => {
+let apiOrigin: string;
+let quotationsPath: string;
+let leadsPath: string;
+
+function matches(url: URL, pathname: string): boolean {
+  return url.origin === apiOrigin && url.pathname === pathname;
+}
+
+async function fulfillJson(
+  route: Route,
+  data: unknown,
+  status = 200,
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  },
+): Promise<void> {
+  await route.fulfill({
+    status,
+    contentType: "application/json",
+    headers: {
+      "Access-Control-Allow-Origin": new URL(process.env.FRONTEND_BASE_URL!)
+        .origin,
+      "Access-Control-Allow-Credentials": "true",
+    },
+    body: JSON.stringify({
+      success: status < 400,
+      data,
+      ...(meta ? { meta } : {}),
+    }),
+  });
+}
+
+test.describe("Quotations Dashboard — Frontend Integration", () => {
   test.beforeEach(async ({ page }) => {
-    // Mock GET /quotations endpoint
-    await page.route("**/quotations*", async (route) => {
-      if (route.request().method() === "GET") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            items: mockInitialQuotations,
-            total: mockInitialQuotations.length,
-            page: 1,
-            limit: 10,
-            totalPages: 1,
-          }),
+    const baseUrl = apiBaseUrl();
+
+    apiOrigin = new URL(baseUrl).origin;
+    quotationsPath = new URL(`${baseUrl}/quotations`).pathname;
+    leadsPath = new URL(`${baseUrl}/leads`).pathname;
+
+    await page.route(
+      (url) => matches(url, quotationsPath),
+      async (route) => {
+        if (route.request().method() !== "GET") {
+          await route.fallback();
+          return;
+        }
+
+        const requestUrl = new URL(route.request().url());
+        const status = requestUrl.searchParams.get("status");
+        const search = (
+          requestUrl.searchParams.get("search") ?? ""
+        ).toLowerCase();
+
+        const items = mockInitialQuotations.filter((quotation) => {
+          const statusMatches = !status || quotation.status === status;
+
+          const searchMatches =
+            !search ||
+            `${quotation.lead?.customerName ?? ""} ${quotation.notes ?? ""}`
+              .toLowerCase()
+              .includes(search);
+
+          return statusMatches && searchMatches;
         });
-      } else {
-        await route.continue();
-      }
-    });
 
-    // Mock GET /leads dropdown list
-    await page.route("**/leads*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(mockLeads),
-      });
-    });
+        const pageNumber = Number(requestUrl.searchParams.get("page") ?? "1");
+        const pageSize = Number(requestUrl.searchParams.get("limit") ?? "10");
 
-    // Navigate to quotations dashboard
+        const pageItems = items.slice(
+          (pageNumber - 1) * pageSize,
+          pageNumber * pageSize,
+        );
+
+        await fulfillJson(route, pageItems, 200, {
+          total: items.length,
+          page: pageNumber,
+          limit: pageSize,
+          totalPages: Math.ceil(items.length / pageSize),
+        });
+      },
+    );
+
+    await page.route(
+      (url) =>
+        url.origin === apiOrigin &&
+        (url.pathname === leadsPath ||
+          url.pathname.startsWith(`${leadsPath}/`)),
+      async (route) => {
+        if (route.request().method() !== "GET") {
+          await route.fallback();
+          return;
+        }
+
+        const pathname = new URL(route.request().url()).pathname;
+
+        if (pathname === leadsPath) {
+          await fulfillJson(route, {
+            data: mockLeads,
+            meta: {
+              total: mockLeads.length,
+              page: 1,
+              limit: 100,
+              totalPages: 1,
+            },
+          });
+          return;
+        }
+
+        const leadId = decodeURIComponent(
+          pathname.slice(`${leadsPath}/`.length),
+        );
+
+        const lead = mockLeads.find((record) => record.id === leadId);
+
+        await fulfillJson(route, lead ?? null, lead ? 200 : 404);
+      },
+    );
+
     await page.goto("/dashboard/quotations");
+
+    await expect(page.locator("#create-quotation-panel")).toBeVisible();
   });
 
-  test("FE-01: enforces client-side validation on empty submission", async ({ page }) => {
-    const submitBtn = page.getByRole("button", {
-      name: /generate quotation|create quotation|save quotation/i,
+  test("FE-01: validates an empty quotation", async ({ page }) => {
+    await page.getByRole("button", { name: "Generate Quotation" }).click();
+
+    await expect(page.getByText("Lead ID is required.")).toBeVisible();
+
+    await expect(page.locator("#quotation-items-error")).toBeVisible();
+
+    await expect(page.locator('[aria-live="polite"]')).toContainText(
+      "Please correct the highlighted quotation form errors.",
+    );
+  });
+
+  test("FE-02: updates totals when items are added and removed", async ({
+    page,
+  }) => {
+    const panel = page.locator("#create-quotation-panel");
+
+    await page.getByLabel("Item 1 name").fill("Excavation Work");
+    await page.getByLabel("Item 1 quantity").fill("2");
+    await page.getByLabel("Item 1 unit price").fill("5000");
+
+    await expect(panel).toContainText(/10,000\.00/);
+
+    await page.getByRole("button", { name: "Add item to quotation" }).click();
+
+    await page.getByLabel("Item 2 name").fill("Reinforced Concrete");
+    await page.getByLabel("Item 2 quantity").fill("3");
+    await page.getByLabel("Item 2 unit price").fill("2500");
+
+    await expect(panel).toContainText(/17,500\.00/);
+
+    await page.getByRole("button", { name: "Remove item 1" }).click();
+
+    await expect(panel).toContainText(/7,500\.00/);
+
+    await expect(page.getByLabel("Item 2 name")).toHaveCount(0);
+  });
+
+  test("FE-03: creates a quotation", async ({ page }) => {
+    const created = {
+      ...mockInitialQuotations[0],
+      id: "quo-mock-003",
+      quotationNumber: "QUO-2026-003",
+      leadId: "lead-101",
+      status: "PENDING_APPROVAL" as const,
+      notes: "Urgent quote for garden space",
+      totalAmount: 15000,
+      items: [
+        {
+          id: "item-new-001",
+          quotationId: "quo-mock-003",
+          itemName: "Landscaping",
+          quantity: 1,
+          unitPrice: 15000,
+          amount: 15000,
+        },
+      ],
+    };
+
+    await page.route(
+      (url) => matches(url, quotationsPath),
+      async (route) => {
+        if (route.request().method() !== "POST") {
+          await route.fallback();
+          return;
+        }
+        await fulfillJson(route, created, 201);
+      },
+    );
+
+    await page.route(
+      (url) => matches(url, `${quotationsPath}/quo-mock-003`),
+      async (route) => {
+        await fulfillJson(route, created);
+      },
+    );
+
+    await page
+      .getByRole("button", {
+        name: /Choose a lead for this quotation/i,
+      })
+      .click();
+
+    await page.getByRole("button", { name: /Skyline Heights/i }).click();
+
+    await page.getByLabel("Item 1 name").fill("Landscaping");
+    await page.getByLabel("Item 1 quantity").fill("1");
+    await page.getByLabel("Item 1 unit price").fill("15000");
+
+    await page
+      .getByLabel("Optional notes for this quotation")
+      .fill("Urgent quote for garden space");
+
+    const postRequest = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        matches(new URL(request.url()), quotationsPath),
+    );
+
+    await page.getByRole("button", { name: "Generate Quotation" }).click();
+
+    const payload = (await postRequest).postDataJSON();
+
+    expect(payload).toMatchObject({
+      leadId: "lead-101",
+      items: [
+        {
+          itemName: "Landscaping",
+          quantity: 1,
+          unitPrice: 15000,
+        },
+      ],
     });
-    await expect(submitBtn).toBeVisible();
-    await submitBtn.click();
 
-    // Verify field validation error messages appear
-    const leadError = page.locator("text=/lead.*required/i");
-    const itemError = page.locator("text=/item name.*required/i");
-    await expect(leadError.or(page.locator('[aria-invalid="true"]')).first()).toBeVisible();
+    await expect(page.locator('[aria-live="polite"]')).toContainText(
+      "Quotation generated successfully",
+    );
   });
 
-  test("FE-02: dynamically adds line items and updates live total computation", async ({ page }) => {
-    const panel = page.locator("#create-quotation-panel").or(page.locator("form")).first();
-    const itemNameInput = page.getByPlaceholder(/item name/i).first();
-    const qtyInput = page.getByPlaceholder(/qty/i).first();
-    const unitPriceInput = page.getByPlaceholder(/unit price/i).first();
+  test("FE-04: filters quotations by status and search", async ({ page }) => {
+    const pendingCard = page
+      .locator("article")
+      .filter({ hasText: "quo-mock-001" });
 
-    await itemNameInput.fill("Excavation Work");
-    await qtyInput.fill("2");
-    await unitPriceInput.fill("5000");
+    await expect(pendingCard).toBeVisible();
 
-    // Total should display formatted $10,000.00
-    await expect(panel).toContainText(/10,000\.00|\$10,000/);
+    await page.getByRole("button", { name: "Pending Approval" }).click();
 
-    // Add a second line item
-    const addItemBtn = page.getByRole("button", { name: /add item/i });
-    await addItemBtn.click();
+    await expect(pendingCard).toBeVisible();
 
-    const secondItemName = page.getByPlaceholder(/item name/i).nth(1);
-    const secondQty = page.getByPlaceholder(/qty/i).nth(1);
-    const secondPrice = page.getByPlaceholder(/unit price/i).nth(1);
+    await expect(
+      page.locator("article").filter({
+        hasText: "quo-mock-002",
+      }),
+    ).toHaveCount(0);
 
-    await secondItemName.fill("Reinforced Concrete");
-    await secondQty.fill("3");
-    await secondPrice.fill("2500");
+    await page
+      .getByRole("textbox", { name: "Search quotations" })
+      .fill("Initial construction");
 
-    // New total: 10,000 + 7,500 = $17,500.00
-    await expect(panel).toContainText(/17,500\.00|\$17,500/);
-
-    // Remove first line item
-    const removeFirstBtn = page.getByRole("button", { name: /remove item 1|remove/i }).first();
-    await removeFirstBtn.click();
-
-    // Total after removal: $7,500.00
-    await expect(panel).toContainText(/7,500\.00|\$7,500/);
+    await expect(pendingCard).toBeVisible();
   });
 
-  test("FE-03: successfully submits quotation and displays feedback banner", async ({ page }) => {
-    // Mock POST /quotations response
-    await page.route("**/quotations", async (route) => {
-      if (route.request().method() === "POST") {
-        const payload = route.request().postDataJSON() || {};
+  test("FE-05: edits quotation line items", async ({ page }) => {
+    await page.route(
+      (url) => matches(url, `${quotationsPath}/quo-mock-001`),
+      async (route) => {
+        if (route.request().method() !== "PUT") {
+          await route.fallback();
+          return;
+        }
+
+        const updated = {
+          ...mockInitialQuotations[0],
+          totalAmount: 2200000,
+          items: [
+            {
+              ...mockInitialQuotations[0].items[0],
+              quantity: 2,
+              amount: 700000,
+            },
+            mockInitialQuotations[0].items[1],
+          ],
+        };
+
+        await fulfillJson(route, updated);
+      },
+    );
+
+    const card = page.locator("article").filter({ hasText: "quo-mock-001" });
+
+    await expect(card).toBeVisible();
+
+    await card
+      .getByRole("button", {
+        name: "Edit quotation quo-mock-001",
+      })
+      .click();
+
+    const modal = page.getByRole("dialog", {
+      name: "Edit Quotation",
+    });
+
+    await expect(modal).toBeVisible();
+
+    await modal.getByRole("spinbutton", { name: "Item 1 quantity" }).fill("2");
+
+    const updateRequest = page.waitForRequest(
+      (request) =>
+        request.method() === "PUT" &&
+        matches(new URL(request.url()), `${quotationsPath}/quo-mock-001`),
+    );
+
+    await modal.getByRole("button", { name: "Save Quotation" }).click();
+
+    const payload = (await updateRequest).postDataJSON();
+
+    expect(payload.items[0].quantity).toBe(2);
+
+    await expect(modal).not.toBeVisible();
+
+    await expect(page.locator('[aria-live="polite"]')).toContainText(
+      "updated successfully",
+    );
+  });
+
+  test("FE-06: requires a rejection reason", async ({ page }) => {
+    await page.route(
+      (url) => matches(url, `${quotationsPath}/quo-mock-001/reject`),
+      async (route) => {
+        await fulfillJson(route, {
+          ...mockInitialQuotations[0],
+          status: "REJECTED",
+        });
+      },
+    );
+
+    const card = page.locator("article").filter({ hasText: "quo-mock-001" });
+
+    await card
+      .getByRole("button", {
+        name: "Reject quotation quo-mock-001",
+      })
+      .click();
+
+    const modal = page.getByRole("dialog", {
+      name: "Reject Quotation",
+    });
+
+    const confirm = modal.getByRole("button", {
+      name: "Reject Quotation",
+    });
+
+    await expect(confirm).toBeDisabled();
+
+    await modal
+      .locator("#rejection-reason-input")
+      .fill("Client requested a revised scope.");
+
+    await expect(confirm).toBeEnabled();
+
+    await confirm.click();
+
+    await expect(modal).not.toBeVisible();
+
+    await expect(page.locator('[aria-live="polite"]')).toContainText(
+      "has been rejected",
+    );
+  });
+
+  test("FE-07: shows an invalid status transition error on approval", async ({
+    page,
+  }) => {
+    const approvalPath = `${quotationsPath}/quo-mock-001/direct-approve`;
+
+    await page.route(
+      (url) => matches(url, approvalPath),
+      async (route) => {
         await route.fulfill({
-          status: 201,
+          status: 400,
           contentType: "application/json",
+          headers: {
+            "Access-Control-Allow-Origin": new URL(
+              process.env.FRONTEND_BASE_URL!,
+            ).origin,
+            "Access-Control-Allow-Credentials": "true",
+          },
           body: JSON.stringify({
-            id: "quo-mock-003",
-            leadId: payload.leadId || "lead-101",
-            quotationDate: "2026-10-11",
-            status: "PENDING_APPROVAL",
-            totalAmount: 15000,
-            notes: payload.notes || "Urgent quote for garden space",
-            pdfUrl: null,
-            projectId: null,
-            items: [
-              {
-                id: "item-new-001",
-                itemName: "Landscaping",
-                quantity: 1,
-                unitPrice: 15000,
-                amount: 15000,
-              },
-            ],
+            success: false,
+            statusCode: 400,
+            code: "INVALID_STATUS_TRANSITION",
+            message:
+              "Cannot approve quotation with status DRAFT. Only PENDING_APPROVAL quotations can be approved.",
           }),
         });
-      } else {
-        await route.continue();
-      }
+      },
+    );
+
+    const card = page.locator("article").filter({
+      hasText: "quo-mock-001",
     });
 
-    // Select lead
-    const leadTrigger = page.getByRole("button", { name: /select a lead/i })
-      .or(page.locator('select[name="leadId"], #lead-select'));
-    if (await leadTrigger.isVisible()) {
-      if ((await leadTrigger.getAttribute("role")) === "button") {
-        await leadTrigger.click();
-        await page.getByRole("option", { name: /skyline heights/i }).click();
-      } else {
-        await leadTrigger.selectOption({ index: 1 });
-      }
-    }
+    const approvalResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "PATCH" &&
+        matches(new URL(response.url()), approvalPath),
+    );
 
-    // Fill line item details
-    await page.getByPlaceholder(/item name/i).first().fill("Landscaping");
-    await page.getByPlaceholder(/qty/i).first().fill("1");
-    await page.getByPlaceholder(/unit price/i).first().fill("15000");
+    await card
+      .getByRole("button", {
+        name: "Approve quotation quo-mock-001",
+      })
+      .click();
 
-    const notesInput = page.locator("#create-quotation-notes").or(page.getByPlaceholder(/notes/i));
-    if (await notesInput.isVisible()) {
-      await notesInput.fill("Urgent quote for garden space");
-    }
+    const response = await approvalResponse;
 
-    // Submit form
-    await page.getByRole("button", { name: /generate quotation|create quotation|save quotation/i }).click();
+    expect(response.status()).toBe(400);
 
-    // Assert success notification banner
     await expect(
-      page.locator('[aria-live="polite"]').or(page.getByText(/quotation created successfully|success/i)).first(),
+      page.getByText(
+        "This quotation cannot transition to the requested status.",
+        { exact: true },
+      ),
     ).toBeVisible();
   });
 
-  test("FE-04: filters quotations by status tab and search query", async ({ page }) => {
-    // Test tab navigation
-    const pendingTab = page.getByRole("tab", { name: /pending approval/i });
-    if (await pendingTab.isVisible()) {
-      await pendingTab.click();
-      await expect(page.locator("article").filter({ hasText: /pending approval/i }).first()).toBeVisible();
-    }
+  test("FE-08: requests a quotation PDF", async ({ page }) => {
+    const pdfPath = `${quotationsPath}/quo-mock-001/pdf`;
 
-    // Test search filter
-    const searchInput = page.getByPlaceholder(/search quotations/i);
-    if (await searchInput.isVisible()) {
-      await searchInput.fill("Initial construction");
-      await expect(page.locator("article").filter({ hasText: /Initial construction/i }).first()).toBeVisible();
-    }
-  });
-
-  test("FE-05: opens line item edit modal and saves changes", async ({ page }) => {
-    // Mock PUT /quotations/:id response
-    await page.route("**/quotations/quo-mock-001", async (route) => {
-      if (route.request().method() === "PUT") {
-        await route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify({
-            ...mockInitialQuotations[0],
-            totalAmount: 2200000,
-          }),
+    await page.route(
+      (url) => matches(url, pdfPath),
+      async (route) => {
+        await fulfillJson(route, {
+          pdfUrl: "https://example.com/quotation.pdf",
         });
-      } else {
-        await route.continue();
-      }
-    });
+      },
+    );
 
-    const quotationCard = page.locator("article").filter({ hasText: "QUO-2026-001" }).or(page.locator("article").first());
-    await expect(quotationCard).toBeVisible();
+    const card = page.locator("article").filter({ hasText: "quo-mock-001" });
 
-    const editBtn = quotationCard.getByRole("button", { name: /edit/i });
-    if (await editBtn.isVisible()) {
-      await editBtn.click();
-      const editModal = page.getByRole("dialog", { name: /edit quotation/i }).or(page.locator(".modal, [role='dialog']"));
-      await expect(editModal).toBeVisible();
+    const pdfResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "GET" &&
+        matches(new URL(response.url()), pdfPath),
+    );
 
-      const editQty = editModal.getByPlaceholder(/qty/i).first();
-      if (await editQty.isVisible()) {
-        await editQty.fill("2");
-      }
-      await editModal.getByRole("button", { name: /save changes|save|update/i }).click();
-      await expect(editModal).toBeHidden();
-    }
-  });
+    await card
+      .getByRole("button", {
+        name: "Download or view PDF for quotation quo-mock-001",
+      })
+      .click();
 
-  test("FE-06: rejection flow requires mandatory reason", async ({ page }) => {
-    await page.route("**/quotations/quo-mock-001/reject", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          ...mockInitialQuotations[0],
-          status: "REJECTED",
-          rejectionReason: "Client requested revised scope of work",
-        }),
-      });
-    });
+    expect((await pdfResponse).status()).toBe(200);
 
-    const quotationCard = page.locator("article").first();
-    const rejectBtn = quotationCard.getByRole("button", { name: /reject/i });
-
-    if (await rejectBtn.isVisible()) {
-      await rejectBtn.click();
-      const rejectModal = page.getByRole("dialog", { name: /reject quotation/i }).or(page.locator(".modal, [role='dialog']"));
-      await expect(rejectModal).toBeVisible();
-
-      // Submit without reason -> expect validation message
-      const confirmRejectBtn = rejectModal.getByRole("button", { name: /confirm rejection|reject/i });
-      await confirmRejectBtn.click();
-      await expect(rejectModal.getByText(/reason is required/i)).toBeVisible();
-
-      // Enter rejection reason and confirm
-      const reasonInput = rejectModal.getByPlaceholder(/enter reason|reason/i);
-      await reasonInput.fill("Client requested revised scope of work");
-      await confirmRejectBtn.click();
-
-      await expect(rejectModal).toBeHidden();
-      await expect(page.locator('[aria-live="polite"]').or(page.getByText(/rejected/i)).first()).toBeVisible();
-    }
-  });
-
-  test("FE-07: displays appropriate error banner on API 409 transition conflict", async ({ page }) => {
-    await page.route("**/quotations/quo-mock-001/approve", async (route) => {
-      await route.fulfill({
-        status: 409,
-        contentType: "application/json",
-        body: JSON.stringify({
-          statusCode: 409,
-          code: "INVALID_STATUS_TRANSITION",
-          message: "This quotation cannot transition to the requested status.",
-        }),
-      });
-    });
-
-    const quotationCard = page.locator("article").first();
-    const approveBtn = quotationCard.getByRole("button", { name: /approve/i });
-    if (await approveBtn.isVisible()) {
-      await approveBtn.click();
-      const confirmBtn = page.locator("button:has-text('Confirm'), button:has-text('Yes')");
-      if (await confirmBtn.isVisible()) {
-        await confirmBtn.click();
-      }
-      await expect(
-        page.locator('[aria-live="polite"]').or(page.getByText(/cannot transition|invalid status/i)).first(),
-      ).toBeVisible();
-    }
-  });
-
-  test("FE-08: triggers PDF export without UI errors", async ({ page }) => {
-    await page.route("**/quotations/quo-mock-001/pdf", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          url: "https://res.cloudinary.com/constructpro/raw/upload/sample-quotation.pdf",
-        }),
-      });
-    });
-
-    const quotationCard = page.locator("article").first();
-    const pdfBtn = quotationCard.getByRole("button", { name: /pdf|export/i });
-    if (await pdfBtn.isVisible()) {
-      await pdfBtn.click();
-      // Ensure no failure toast popped up
-      await expect(page.locator('[aria-live="polite"]').filter({ hasText: /failed/i })).toHaveCount(0);
-    }
+    await expect(
+      page
+        .locator('[aria-live="polite"]')
+        .filter({ hasText: /Failed to generate quotation PDF/i }),
+    ).toHaveCount(0);
   });
 });

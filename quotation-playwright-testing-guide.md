@@ -3,13 +3,14 @@
 **Document:** `docs/testing/quotation-playwright-testing-guide.md`  
 **Owner:** Sprint 8 Person 2 (Quotations, Conversion & Lead-to-Project Workflow Quality)  
 **Test Framework:** Playwright (TypeScript)  
-**Target Repository:** Standalone `tests` repository  
+**Target Repository:** Standalone `tests` repository
 
 ---
 
 ## 1. Executive Summary & Ownership Scope
 
 As **Person 2**, your core testing responsibility covers:
+
 1. **Quotation Calculations & Math Precision:** Floating-point precision, `amount = round2(quantity * unitPrice)`, `subtotal`, `tax`, `discount`, and `totalAmount` without calculation drift between UI and backend.
 2. **Quotation State Machine:** Strict enforcement of allowed status transitions:
    - `DRAFT` &rarr; `SENT`
@@ -55,14 +56,14 @@ tests-repo/
 Configure Playwright to separate fast API integration tests from browser E2E tests:
 
 ```typescript
-import { defineConfig, devices } from '@playwright/test';
-import dotenv from 'dotenv';
-import path from 'path';
+import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: "./tests",
   timeout: 30000,
   expect: {
     timeout: 5000,
@@ -72,37 +73,37 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: [
-    ['list'],
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
-    ['json', { outputFile: 'test-results/results.json' }],
+    ["list"],
+    ["html", { outputFolder: "playwright-report", open: "never" }],
+    ["json", { outputFile: "test-results/results.json" }],
   ],
   use: {
-    baseURL: process.env.FRONTEND_URL || 'http://localhost:5173',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    baseURL: process.env.FRONTEND_URL || "http://localhost:5173",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
   },
   projects: [
     // 1. Headless API Integration Suite (Fast HTTP calls)
     {
-      name: 'api-integration',
-      testDir: './tests/integration',
+      name: "api-integration",
+      testDir: "./tests/integration",
       use: {
-        baseURL: process.env.API_GATEWAY_URL || 'http://localhost:3000',
+        baseURL: process.env.API_GATEWAY_URL || "http://localhost:3000",
         extraHTTPHeaders: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
       },
     },
 
     // 2. Browser E2E Suite (Chromium)
     {
-      name: 'e2e-chromium',
-      testDir: './tests/e2e',
+      name: "e2e-chromium",
+      testDir: "./tests/e2e",
       use: {
-        ...devices['Desktop Chrome'],
-        baseURL: process.env.FRONTEND_URL || 'http://localhost:5173',
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.FRONTEND_URL || "http://localhost:5173",
       },
     },
   ],
@@ -139,12 +140,13 @@ Playwright's `request` fixture (`APIRequestContext`) tests backend endpoints ove
 ### Key Test File: `tests/integration/quotation-api.spec.ts`
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:3000';
-const LEAD_ID = process.env.TEST_LEAD_ID || '00000000-0000-0000-0000-000000000001';
+const GATEWAY_URL = process.env.API_GATEWAY_URL || "http://localhost:3000";
+const LEAD_ID =
+  process.env.TEST_LEAD_ID || "00000000-0000-0000-0000-000000000001";
 
-test.describe('Quotation Service — Integration API Suite', () => {
+test.describe("Quotation Service — Integration API Suite", () => {
   let adminToken: string;
   let unauthorizedToken: string;
   let testQuotationId: string;
@@ -153,19 +155,19 @@ test.describe('Quotation Service — Integration API Suite', () => {
     // 1. Acquire Admin Token
     const adminLogin = await request.post(`${GATEWAY_URL}/auth/login`, {
       data: {
-        email: process.env.TEST_ADMIN_EMAIL || 'admin@constructpro.com',
-        password: process.env.TEST_ADMIN_PASSWORD || 'Password123!',
+        email: process.env.TEST_ADMIN_EMAIL || "admin@constructpro.com",
+        password: process.env.TEST_ADMIN_PASSWORD || "Password123!",
       },
     });
-    expect(adminLogin.ok(), 'Admin login failed').toBeTruthy();
+    expect(adminLogin.ok(), "Admin login failed").toBeTruthy();
     const adminBody = await adminLogin.json();
     adminToken = adminBody.accessToken || adminBody.token;
 
     // 2. Acquire Client/Unauthorized Token for RBAC verification
     const clientLogin = await request.post(`${GATEWAY_URL}/auth/login`, {
       data: {
-        email: process.env.TEST_UNAUTHORIZED_EMAIL || 'client@constructpro.com',
-        password: process.env.TEST_UNAUTHORIZED_PASSWORD || 'Password123!',
+        email: process.env.TEST_UNAUTHORIZED_EMAIL || "client@constructpro.com",
+        password: process.env.TEST_UNAUTHORIZED_PASSWORD || "Password123!",
       },
     });
     if (clientLogin.ok()) {
@@ -176,17 +178,27 @@ test.describe('Quotation Service — Integration API Suite', () => {
 
   const adminHeaders = () => ({
     Authorization: `Bearer ${adminToken}`,
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   });
 
   // TEST 1: Creation & Mathematical Precision
-  test('POST /quotations — creates draft quotation with accurate line item and total calculations', async ({ request }) => {
+  test("POST /quotations — creates draft quotation with accurate line item and total calculations", async ({
+    request,
+  }) => {
     const payload = {
       leadId: LEAD_ID,
-      notes: 'Automated integration test quotation',
+      notes: "Automated integration test quotation",
       items: [
-        { itemName: 'Structural Concrete Grade 30', quantity: 15, unitPrice: 120.50 }, // 1807.50
-        { itemName: 'Reinforced Steel Rods (12mm)', quantity: 20, unitPrice: 45.25 },   //  905.00
+        {
+          itemName: "Structural Concrete Grade 30",
+          quantity: 15,
+          unitPrice: 120.5,
+        }, // 1807.50
+        {
+          itemName: "Reinforced Steel Rods (12mm)",
+          quantity: 20,
+          unitPrice: 45.25,
+        }, //  905.00
       ],
     };
 
@@ -198,25 +210,33 @@ test.describe('Quotation Service — Integration API Suite', () => {
     expect(response.status()).toBe(201);
     const body = await response.json();
 
-    expect(body).toHaveProperty('id');
+    expect(body).toHaveProperty("id");
     testQuotationId = body.id;
 
     // Status verification
-    expect(body.status).toBe('DRAFT');
+    expect(body.status).toBe("DRAFT");
 
     // Mathematical integrity: (15 * 120.50) + (20 * 45.25) = 1807.50 + 905.00 = 2712.50
-    expect(Number(body.subtotal)).toBeCloseTo(2712.50, 2);
-    expect(Number(body.totalAmount)).toBeCloseTo(2712.50, 2);
+    expect(Number(body.subtotal)).toBeCloseTo(2712.5, 2);
+    expect(Number(body.totalAmount)).toBeCloseTo(2712.5, 2);
     expect(body.items).toHaveLength(2);
   });
 
   // TEST 2: Query by ID
-  test('GET /quotations/:id — returns full quotation payload with nested items', async ({ request }) => {
-    expect(testQuotationId, 'Quotation must be created prior to fetch').toBeDefined();
+  test("GET /quotations/:id — returns full quotation payload with nested items", async ({
+    request,
+  }) => {
+    expect(
+      testQuotationId,
+      "Quotation must be created prior to fetch",
+    ).toBeDefined();
 
-    const response = await request.get(`${GATEWAY_URL}/quotations/${testQuotationId}`, {
-      headers: adminHeaders(),
-    });
+    const response = await request.get(
+      `${GATEWAY_URL}/quotations/${testQuotationId}`,
+      {
+        headers: adminHeaders(),
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -225,95 +245,128 @@ test.describe('Quotation Service — Integration API Suite', () => {
   });
 
   // TEST 3: Update Quotation Items & Recalculate
-  test('PUT /quotations/:id — updates items and dynamically recalculates total amount', async ({ request }) => {
+  test("PUT /quotations/:id — updates items and dynamically recalculates total amount", async ({
+    request,
+  }) => {
     expect(testQuotationId).toBeDefined();
 
     const updatePayload = {
-      notes: 'Updated quantities for verification',
+      notes: "Updated quantities for verification",
       items: [
-        { itemName: 'Structural Concrete Grade 30', quantity: 10, unitPrice: 120.50 }, // 1205.00
+        {
+          itemName: "Structural Concrete Grade 30",
+          quantity: 10,
+          unitPrice: 120.5,
+        }, // 1205.00
       ],
     };
 
-    const response = await request.put(`${GATEWAY_URL}/quotations/${testQuotationId}`, {
-      headers: adminHeaders(),
-      data: updatePayload,
-    });
+    const response = await request.put(
+      `${GATEWAY_URL}/quotations/${testQuotationId}`,
+      {
+        headers: adminHeaders(),
+        data: updatePayload,
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(Number(body.totalAmount)).toBeCloseTo(1205.00, 2);
+    expect(Number(body.totalAmount)).toBeCloseTo(1205.0, 2);
   });
 
   // TEST 4: State Machine Revision Transition
-  test('PATCH /quotations/:id/revise — transitions status to REVISED', async ({ request }) => {
+  test("PATCH /quotations/:id/revise — transitions status to REVISED", async ({
+    request,
+  }) => {
     expect(testQuotationId).toBeDefined();
 
-    const response = await request.patch(`${GATEWAY_URL}/quotations/${testQuotationId}/revise`, {
-      headers: adminHeaders(),
-    });
+    const response = await request.patch(
+      `${GATEWAY_URL}/quotations/${testQuotationId}/revise`,
+      {
+        headers: adminHeaders(),
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await response.json();
-    expect(body.status).toBe('REVISED');
+    expect(body.status).toBe("REVISED");
   });
 
   // TEST 5: PDF Generation Resiliency
-  test('GET /quotations/:id/pdf — returns document download or pre-signed URL', async ({ request }) => {
+  test("GET /quotations/:id/pdf — returns document download or pre-signed URL", async ({
+    request,
+  }) => {
     expect(testQuotationId).toBeDefined();
 
-    const response = await request.get(`${GATEWAY_URL}/quotations/${testQuotationId}/pdf`, {
-      headers: adminHeaders(),
-    });
+    const response = await request.get(
+      `${GATEWAY_URL}/quotations/${testQuotationId}/pdf`,
+      {
+        headers: adminHeaders(),
+      },
+    );
 
     expect(response.ok()).toBeTruthy();
     const body = await response.json();
-    expect(body).toHaveProperty('url');
-    expect(typeof body.url).toBe('string');
+    expect(body).toHaveProperty("url");
+    expect(typeof body.url).toBe("string");
   });
 
   // TEST 6: Approval & Project Conversion
-  test('PATCH /quotations/:id/approve — approves quotation and triggers Project creation', async ({ request }) => {
+  test("PATCH /quotations/:id/approve — approves quotation and triggers Project creation", async ({
+    request,
+  }) => {
     expect(testQuotationId).toBeDefined();
 
     const approvePayload = {
-      projectName: 'Sprint 8 Commercial Tower Alpha',
-      location: 'Kandy City Center',
-      budget: 1205.00,
+      projectName: "Sprint 8 Commercial Tower Alpha",
+      location: "Kandy City Center",
+      budget: 1205.0,
     };
 
-    const response = await request.patch(`${GATEWAY_URL}/quotations/${testQuotationId}/approve`, {
-      headers: adminHeaders(),
-      data: approvePayload,
-    });
+    const response = await request.patch(
+      `${GATEWAY_URL}/quotations/${testQuotationId}/approve`,
+      {
+        headers: adminHeaders(),
+        data: approvePayload,
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await response.json();
 
     // Verify converted status and linkage to project
-    expect(body.status).toBe('CONVERTED');
+    expect(body.status).toBe("CONVERTED");
     expect(body.projectId).toBeDefined();
   });
 
   // TEST 7: Guardrail Against Duplicate Conversion
-  test('GUARD: Duplicate conversion attempt is blocked', async ({ request }) => {
+  test("GUARD: Duplicate conversion attempt is blocked", async ({
+    request,
+  }) => {
     expect(testQuotationId).toBeDefined();
 
-    const duplicateResponse = await request.patch(`${GATEWAY_URL}/quotations/${testQuotationId}/approve`, {
-      headers: adminHeaders(),
-      data: {
-        projectName: 'Illegal Duplicate Project Creation',
+    const duplicateResponse = await request.patch(
+      `${GATEWAY_URL}/quotations/${testQuotationId}/approve`,
+      {
+        headers: adminHeaders(),
+        data: {
+          projectName: "Illegal Duplicate Project Creation",
+        },
       },
-    });
+    );
 
     // Guardrail must block duplicate conversion
     expect([400, 409]).toContain(duplicateResponse.status());
     const errBody = await duplicateResponse.json();
-    expect(errBody.message).toMatch(/(already converted|invalid state|cannot approve)/i);
+    expect(errBody.message).toMatch(
+      /(already converted|invalid state|cannot approve)/i,
+    );
   });
 
   // TEST 8: RBAC Verification
-  test('RBAC: Unauthenticated and unauthorized requests are rejected', async ({ request }) => {
+  test("RBAC: Unauthenticated and unauthorized requests are rejected", async ({
+    request,
+  }) => {
     // 1. Missing Authorization header -> 401 Unauthorized
     const unauthenticated = await request.post(`${GATEWAY_URL}/quotations`, {
       data: { leadId: LEAD_ID, items: [] },
@@ -325,7 +378,7 @@ test.describe('Quotation Service — Integration API Suite', () => {
       const forbidden = await request.post(`${GATEWAY_URL}/quotations`, {
         headers: {
           Authorization: `Bearer ${unauthorizedToken}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         data: { leadId: LEAD_ID, items: [] },
       });
@@ -345,56 +398,87 @@ The E2E test validates the full user journey on the frontend web application:
 ### Key Test File: `tests/e2e/lead-to-project.spec.ts`
 
 ```typescript
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
-test.describe('E2E Lifecycle: Lead → Quotation → Approval → Project', () => {
-
+test.describe("E2E Lifecycle: Lead → Quotation → Approval → Project", () => {
   test.beforeEach(async ({ page }) => {
     // Step 1: Login via UI
     await page.goto(`${FRONTEND_URL}/login`);
-    await page.fill('input[type="email"], input[name="email"]', process.env.TEST_ADMIN_EMAIL || 'admin@constructpro.com');
-    await page.fill('input[type="password"], input[name="password"]', process.env.TEST_ADMIN_PASSWORD || 'Password123!');
+    await page.fill(
+      'input[type="email"], input[name="email"]',
+      process.env.TEST_ADMIN_EMAIL || "admin@constructpro.com",
+    );
+    await page.fill(
+      'input[type="password"], input[name="password"]',
+      process.env.TEST_ADMIN_PASSWORD || "Password123!",
+    );
     await page.click('button[type="submit"]');
 
     // Confirm navigation into dashboard
     await expect(page).toHaveURL(/.*dashboard/);
   });
 
-  test('User completes Lead to Project conversion flow with accurate calculations', async ({ page }) => {
+  test("User completes Lead to Project conversion flow with accurate calculations", async ({
+    page,
+  }) => {
     // Step 2: Navigate to Quotations module
-    await page.click('nav >> text=Quotations');
+    await page.click("nav >> text=Quotations");
     await expect(page).toHaveURL(/.*quotations/);
 
     // Step 3: Open "Create Quotation" modal / page
-    await page.click('button:has-text("New Quotation"), button:has-text("Create Quotation")');
+    await page.click(
+      'button:has-text("New Quotation"), button:has-text("Create Quotation")',
+    );
 
     // Step 4: Select Lead from dropdown
-    const leadSelect = page.locator('select[name="leadId"], #lead-select, [data-testid="lead-select"]');
+    const leadSelect = page.locator(
+      'select[name="leadId"], #lead-select, [data-testid="lead-select"]',
+    );
     await leadSelect.selectOption({ index: 1 });
 
     // Step 5: Fill line item 1
-    await page.fill('input[name="items.0.itemName"], input[placeholder*="Item name"]', 'Reinforced Concrete Foundation');
-    await page.fill('input[name="items.0.quantity"], input[placeholder*="Qty"]', '10');
-    await page.fill('input[name="items.0.unitPrice"], input[placeholder*="Unit Price"]', '500.00');
+    await page.fill(
+      'input[name="items.0.itemName"], input[placeholder*="Item name"]',
+      "Reinforced Concrete Foundation",
+    );
+    await page.fill(
+      'input[name="items.0.quantity"], input[placeholder*="Qty"]',
+      "10",
+    );
+    await page.fill(
+      'input[name="items.0.unitPrice"], input[placeholder*="Unit Price"]',
+      "500.00",
+    );
 
     // Step 6: Add line item 2
-    const addLineBtn = page.locator('button:has-text("Add Item"), button:has-text("+ Add Line")');
+    const addLineBtn = page.locator(
+      'button:has-text("Add Item"), button:has-text("+ Add Line")',
+    );
     if (await addLineBtn.isVisible()) {
       await addLineBtn.click();
-      await page.fill('input[name="items.1.itemName"]', 'Prefabricated Steel Joists');
-      await page.fill('input[name="items.1.quantity"]', '4');
-      await page.fill('input[name="items.1.unitPrice"]', '750.00');
+      await page.fill(
+        'input[name="items.1.itemName"]',
+        "Prefabricated Steel Joists",
+      );
+      await page.fill('input[name="items.1.quantity"]', "4");
+      await page.fill('input[name="items.1.unitPrice"]', "750.00");
     }
 
     // Step 7: Verify live UI dynamic calculation (10 * 500 + 4 * 750 = 5000 + 3000 = 8000.00)
-    const totalAmount = page.locator('[data-testid="quotation-total"], .total-amount, text=8,000.00');
+    const totalAmount = page.locator(
+      '[data-testid="quotation-total"], .total-amount, text=8,000.00',
+    );
     await expect(totalAmount).toBeVisible();
 
     // Step 8: Save draft quotation
-    await page.click('button:has-text("Save Quotation"), button:has-text("Submit")');
-    await expect(page.locator('text=Quotation created successfully, text=Success')).toBeVisible();
+    await page.click(
+      'button:has-text("Save Quotation"), button:has-text("Submit")',
+    );
+    await expect(
+      page.locator("text=Quotation created successfully, text=Success"),
+    ).toBeVisible();
 
     // Step 9: Transition status to Approved
     const approveBtn = page.locator('button:has-text("Approve")');
@@ -402,19 +486,23 @@ test.describe('E2E Lifecycle: Lead → Quotation → Approval → Project', () =
     await approveBtn.click();
 
     // Confirm modal if confirmation dialog is prompted
-    const confirmModalBtn = page.locator('.modal button:has-text("Confirm"), button:has-text("Yes, Approve")');
+    const confirmModalBtn = page.locator(
+      '.modal button:has-text("Confirm"), button:has-text("Yes, Approve")',
+    );
     if (await confirmModalBtn.isVisible()) {
       await confirmModalBtn.click();
     }
-    await expect(page.locator('text=APPROVED')).toBeVisible();
+    await expect(page.locator("text=APPROVED")).toBeVisible();
 
     // Step 10: Verify PDF download trigger
     const [download] = await Promise.all([
-      page.waitForEvent('download', { timeout: 6000 }).catch(() => null),
-      page.click('button:has-text("Download PDF"), button:has-text("Export PDF")'),
+      page.waitForEvent("download", { timeout: 6000 }).catch(() => null),
+      page.click(
+        'button:has-text("Download PDF"), button:has-text("Export PDF")',
+      ),
     ]);
     if (download) {
-      expect(download.suggestedFilename()).toContain('.pdf');
+      expect(download.suggestedFilename()).toContain(".pdf");
     }
 
     // Step 11: Convert to Project
@@ -423,20 +511,28 @@ test.describe('E2E Lifecycle: Lead → Quotation → Approval → Project', () =
     await convertBtn.click();
 
     // Fill project modal
-    const projectNameInput = page.locator('input[name="projectName"], input[placeholder*="Project Name"]');
+    const projectNameInput = page.locator(
+      'input[name="projectName"], input[placeholder*="Project Name"]',
+    );
     if (await projectNameInput.isVisible()) {
-      await projectNameInput.fill('Commercial Office Complex Sprint 8');
+      await projectNameInput.fill("Commercial Office Complex Sprint 8");
     }
-    await page.click('button:has-text("Confirm Conversion"), button:has-text("Create Project")');
+    await page.click(
+      'button:has-text("Confirm Conversion"), button:has-text("Create Project")',
+    );
 
     // Step 12: Assert redirect to Project view
     await expect(page).toHaveURL(/.*projects/);
-    await expect(page.locator('text=Commercial Office Complex Sprint 8')).toBeVisible();
+    await expect(
+      page.locator("text=Commercial Office Complex Sprint 8"),
+    ).toBeVisible();
 
     // Step 13: Guard verification — navigate back and ensure quotation is CONVERTED & locked
     await page.goBack();
-    await expect(page.locator('text=CONVERTED')).toBeVisible();
-    await expect(page.locator('button:has-text("Convert to Project")')).toBeDisabled();
+    await expect(page.locator("text=CONVERTED")).toBeVisible();
+    await expect(
+      page.locator('button:has-text("Convert to Project")'),
+    ).toBeDisabled();
   });
 });
 ```
@@ -480,6 +576,7 @@ Add the following helper scripts to `package.json` in the `tests` repo:
 ## 7. Sprint 8 Quality Gate & Demo Evidence Checklist
 
 Before the live panel demonstration, verify that:
+
 - [ ] All line item additions and edits compute without rounding drift (`subtotal`, `tax`, `totalAmount`).
 - [ ] Duplicate conversions are firmly rejected with clean error messages.
 - [ ] PDF generation returns without timeout or blank documents.

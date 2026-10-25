@@ -1,9 +1,14 @@
 import type { Quotation, CreateQuotationPayload } from "../support/contracts";
 
-export const round2 = (val: number): number => Math.round((val + Number.EPSILON) * 100) / 100;
+export const round2 = (val: number): number =>
+  Math.round((val + Number.EPSILON) * 100) / 100;
 
 export const mockLeads = [
-  { id: "lead-101", customerName: "Skyline Heights", companyName: "Skyline Corp" },
+  {
+    id: "lead-101",
+    customerName: "Skyline Heights",
+    companyName: "Skyline Corp",
+  },
   { id: "lead-102", customerName: "Lotus Villa", companyName: "Lotus Estates" },
 ];
 
@@ -19,7 +24,11 @@ export const mockInitialQuotations: Quotation[] = [
     notes: "Initial construction survey and foundation",
     pdfUrl: null,
     projectId: null,
-    lead: { id: "lead-101", customerName: "Skyline Heights", companyName: "Skyline Corp" },
+    lead: {
+      id: "lead-101",
+      customerName: "Skyline Heights",
+      companyName: "Skyline Corp",
+    },
     items: [
       {
         id: "item-1",
@@ -50,7 +59,11 @@ export const mockInitialQuotations: Quotation[] = [
     notes: "Draft architectural planning",
     pdfUrl: null,
     projectId: null,
-    lead: { id: "lead-102", customerName: "Lotus Villa", companyName: "Lotus Estates" },
+    lead: {
+      id: "lead-102",
+      customerName: "Lotus Villa",
+      companyName: "Lotus Estates",
+    },
     items: [
       {
         id: "item-3",
@@ -64,13 +77,23 @@ export const mockInitialQuotations: Quotation[] = [
   },
 ];
 
-export function buildQuotationPayload(overrides?: Partial<CreateQuotationPayload>): CreateQuotationPayload {
+export function buildQuotationPayload(
+  overrides?: Partial<CreateQuotationPayload>,
+): CreateQuotationPayload {
   return {
     leadId: "lead-101",
     notes: "Automated integration test quotation",
     items: [
-      { itemName: "Structural Concrete Grade 30", quantity: 15, unitPrice: 120.5 },
-      { itemName: "Reinforced Steel Rods (12mm)", quantity: 20, unitPrice: 45.25 },
+      {
+        itemName: "Structural Concrete Grade 30",
+        quantity: 15,
+        unitPrice: 120.5,
+      },
+      {
+        itemName: "Reinforced Steel Rods (12mm)",
+        quantity: 20,
+        unitPrice: 45.25,
+      },
     ],
     ...overrides,
   };

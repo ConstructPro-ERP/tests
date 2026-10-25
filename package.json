@@ -8,16 +8,19 @@
     "test:e2e": "playwright test",
     "test:e2e:management": "playwright test user-management leads clients management-authorization",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:ui": "playwright test --ui --project=root --project=projects --project=quotations",
     "test:quotations": "playwright test e2e/quotations",
     "test:quotations:frontend": "playwright test e2e/quotations/quotations-frontend.spec.ts",
     "test:quotations:backend": "playwright test e2e/quotations/quotations-backend.spec.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.0.0",
     "dotenv": "^17.2.2",
+    "prettier": "^3.9.10",
     "typescript": "^5.9.2"
   }
 }
