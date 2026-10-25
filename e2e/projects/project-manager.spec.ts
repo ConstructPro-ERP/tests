@@ -21,11 +21,11 @@ test.describe("Project Manager — assigned and unassigned project permissions",
     const password = process.env.E2E_PROJECT_MANAGER_PASSWORD;
     test.skip(
       !email || !password,
-      "Configure E2E_PROJECT_MANAGER_EMAIL and E2E_PROJECT_MANAGER_PASSWORD."
+      "Configure E2E_PROJECT_MANAGER_EMAIL and E2E_PROJECT_MANAGER_PASSWORD.",
     );
     const manager = bearer(await login(request, email!, password!));
     const me = await expectOk<{ id: string; role: string }>(
-      await request.get(url("/auth/me"), { headers: manager })
+      await request.get(url("/auth/me"), { headers: manager }),
     );
     expect(me.role).toBe("PROJECT_MANAGER");
     const assigned = await c.createProject({ projectManagerId: me.id });
@@ -33,12 +33,12 @@ test.describe("Project Manager — assigned and unassigned project permissions",
     expect(
       (
         await request.get(url(`/projects/${assigned.id}`), { headers: manager })
-      ).status()
+      ).status(),
     ).toBe(200);
     expect(
       (
         await request.get(url(`/projects/${foreign.id}`), { headers: manager })
-      ).status()
+      ).status(),
     ).toBe(403);
     const updatedName = `Manager update ${assigned.id}`;
     const change = await request.patch(url(`/projects/${assigned.id}`), {
@@ -47,13 +47,13 @@ test.describe("Project Manager — assigned and unassigned project permissions",
     });
     expect(change.ok(), await change.text()).toBeTruthy();
     expect((await c.get<Project>(`/projects/${assigned.id}`)).projectName).toBe(
-      updatedName
+      updatedName,
     );
     const createdMilestone = await expectOk<Milestone>(
       await request.post(url(`/projects/${assigned.id}/milestones`), {
         headers: manager,
         data: { milestoneName: "Manager milestone", weight: 3 },
-      })
+      }),
     );
     c.track("milestone", createdMilestone.id);
     const createdTask = await expectOk<Task>(
@@ -64,7 +64,7 @@ test.describe("Project Manager — assigned and unassigned project permissions",
           taskName: "Manager task",
           milestoneId: createdMilestone.id,
         },
-      })
+      }),
     );
     c.track("task", createdTask.id);
     try {
@@ -73,14 +73,14 @@ test.describe("Project Manager — assigned and unassigned project permissions",
           await request.get(url(`/milestones/${createdMilestone.id}`), {
             headers: manager,
           })
-        ).status()
+        ).status(),
       ).toBe(200);
       expect(
         (
           await request.get(url(`/tasks/${createdTask.id}`), {
             headers: manager,
           })
-        ).status()
+        ).status(),
       ).toBe(200);
       for (const [path, data] of [
         [`/projects/${assigned.id}/manager`, { projectManagerId: c.adminId }],
@@ -94,7 +94,7 @@ test.describe("Project Manager — assigned and unassigned project permissions",
           ? await request.patch(url(path), { headers: manager, data })
           : await request.post(url(path), { headers: manager, data });
         expect(response.status(), `${path}: ${await response.text()}`).toBe(
-          403
+          403,
         );
       }
       const forbidden = await request.patch(url(`/projects/${foreign.id}`), {
@@ -106,7 +106,7 @@ test.describe("Project Manager — assigned and unassigned project permissions",
         await request.get(url("/projects"), {
           headers: manager,
           params: { limit: 100 },
-        })
+        }),
       );
       expect(list.data.some((p) => p.id === assigned.id)).toBe(true);
       expect(list.data.some((p) => p.id === foreign.id)).toBe(false);
@@ -118,14 +118,14 @@ test.describe("Project Manager — assigned and unassigned project permissions",
           await request.delete(url(`/tasks/${createdTask.id}`), {
             headers: c.headers,
           })
-        ).ok()
+        ).ok(),
       ).toBeTruthy();
       expect(
         (
           await request.delete(url(`/milestones/${createdMilestone.id}`), {
             headers: c.headers,
           })
-        ).ok()
+        ).ok(),
       ).toBeTruthy();
     }
   });

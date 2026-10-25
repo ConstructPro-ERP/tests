@@ -21,20 +21,20 @@ test.describe("Project UI — real frontend and gateway smoke", () => {
   }) => {
     test.skip(
       !process.env.FRONTEND_BASE_URL,
-      "Set FRONTEND_BASE_URL to run browser E2E."
+      "Set FRONTEND_BASE_URL to run browser E2E.",
     );
     const project = await c.createProject();
     await loginAdminUI(page);
     await page.goto("/dashboard/projects");
     await expect(
-      page.getByRole("heading", { name: "Project Management" })
+      page.getByRole("heading", { name: "Project Management" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Create project" })
+      page.getByRole("button", { name: "Create project" }),
     ).toBeVisible();
     await page.goto(`/dashboard/projects/${project.id}`);
     await expect(
-      page.getByRole("heading", { name: project.projectName })
+      page.getByRole("heading", { name: project.projectName }),
     ).toBeVisible();
     const tabs = page.getByRole("navigation", { name: "Project sections" });
     for (const section of [
@@ -47,7 +47,7 @@ test.describe("Project UI — real frontend and gateway smoke", () => {
     ]) {
       await tabs.getByRole("button", { name: section, exact: true }).click();
       await expect(
-        tabs.getByRole("button", { name: section, exact: true })
+        tabs.getByRole("button", { name: section, exact: true }),
       ).toHaveAttribute("aria-current", "page");
     }
   });
@@ -81,7 +81,7 @@ test.describe("Project UI — real frontend and gateway smoke", () => {
       created = list.data.find((row) => row.projectName === name);
       expect(
         created,
-        "Created project should appear in the backend"
+        "Created project should appear in the backend",
       ).toBeDefined();
       await page.goto(`/dashboard/projects/${created!.id}`);
       await page.getByRole("button", { name: "Edit project" }).click();
@@ -90,10 +90,10 @@ test.describe("Project UI — real frontend and gateway smoke", () => {
       await edit.getByRole("button", { name: "Save changes" }).click();
       await expect(edit).not.toBeVisible();
       await expect(
-        page.getByRole("heading", { name: `${name} edited` })
+        page.getByRole("heading", { name: `${name} edited` }),
       ).toBeVisible();
       expect(
-        (await c.get<Project>(`/projects/${created!.id}`)).projectName
+        (await c.get<Project>(`/projects/${created!.id}`)).projectName,
       ).toBe(`${name} edited`);
     } finally {
       // If UI creation succeeded but the first read failed, search again before cleanup.
@@ -127,7 +127,7 @@ test.describe("Project UI — real frontend and gateway smoke", () => {
       .getByRole("button", { name: "Milestones" })
       .click();
     await expect(
-      page.getByText(milestone.milestoneName, { exact: true })
+      page.getByText(milestone.milestoneName, { exact: true }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Progress", exact: true }).click();
     const dialog = page.getByRole("dialog", {
@@ -140,13 +140,13 @@ test.describe("Project UI — real frontend and gateway smoke", () => {
       .poll(
         async () =>
           (await c.get<Milestone>(`/milestones/${milestone.id}`))
-            .progressPercentage
+            .progressPercentage,
       )
       .toBe(35);
     await expect
       .poll(
         async () =>
-          (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+          (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
       )
       .toBe(35);
   });
@@ -197,11 +197,11 @@ test.describe("Project UI — real frontend and gateway smoke", () => {
     await expect(dialog).not.toBeVisible();
     await expect
       .poll(
-        async () => (await c.get<Expense>(`/expenses/${expense.id}`)).amount
+        async () => (await c.get<Expense>(`/expenses/${expense.id}`)).amount,
       )
       .toBe("222.22");
     expect((await c.get<Expense>(`/expenses/${expense.id}`)).recordedById).toBe(
-      c.adminId
+      c.adminId,
     );
   });
 });
@@ -226,7 +226,7 @@ test.describe("Project UI — browser validation and resource creation/deletion"
     await expect(dialog).toBeVisible();
     await expect(dialog.getByLabel(/Project name/)).toHaveAttribute(
       "required",
-      ""
+      "",
     );
   });
 
@@ -270,8 +270,8 @@ test.describe("Project UI — browser validation and resource creation/deletion"
     await expect
       .poll(async () =>
         (await c.get<Milestone[]>(`/projects/${project.id}/milestones`)).some(
-          (m) => m.id === record!.id
-        )
+          (m) => m.id === record!.id,
+        ),
       )
       .toBe(false);
   });
@@ -297,7 +297,7 @@ test.describe("Project UI — browser validation and resource creation/deletion"
     await expect(page.getByText(name, { exact: true })).toBeVisible();
     const rows = await c.get<PageResult<Task>>(
       `/projects/${project.id}/tasks`,
-      { search: name, limit: 100 }
+      { search: name, limit: 100 },
     );
     const task = rows.data.find((task) => task.taskName === name);
     expect(task).toBeDefined();
@@ -319,7 +319,7 @@ test.describe("Project UI — browser validation and resource creation/deletion"
             await c.get<PageResult<Task>>(`/projects/${project.id}/tasks`, {
               search: name,
             })
-          ).meta.total
+          ).meta.total,
       )
       .toBe(0);
   });
@@ -347,14 +347,14 @@ test.describe("Project UI — browser validation and resource creation/deletion"
         async () =>
           (
             await c.get<{ total: string }>(
-              `/projects/${project.id}/expenses/summary`
+              `/projects/${project.id}/expenses/summary`,
             )
-          ).total
+          ).total,
       )
       .toBe("8.75");
     const added = await c.get<PageResult<Expense>>(
       `/projects/${project.id}/expenses`,
-      { limit: 20 }
+      { limit: 20 },
     );
     expect(added.data).toHaveLength(1);
     c.track("expense", added.data[0].id);
@@ -373,9 +373,9 @@ test.describe("Project UI — browser validation and resource creation/deletion"
         async () =>
           (
             await c.get<{ total: string }>(
-              `/projects/${project.id}/expenses/summary`
+              `/projects/${project.id}/expenses/summary`,
             )
-          ).total
+          ).total,
       )
       .toBe("0.00");
   });
@@ -393,13 +393,13 @@ test.describe("Project UI — browser validation and resource creation/deletion"
       .getByRole("button", { name: "Calendar" })
       .click();
     await expect(
-      page.getByRole("region", { name: "Project calendar" })
+      page.getByRole("region", { name: "Project calendar" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "Project calendar" })
+      page.getByRole("heading", { name: "Project calendar" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Refresh calendar" })
+      page.getByRole("button", { name: "Refresh calendar" }),
     ).toBeVisible();
   });
 });
@@ -415,7 +415,7 @@ test.describe("Project documents — browser workflow with dedicated storage fix
         process.env.E2E_ENABLE_DOCUMENT_UPLOADS !== "true" ||
         !process.env.E2E_DOCUMENT_PROJECT_ID ||
         !process.env.E2E_DOCUMENT_CATEGORY_ID,
-      "Requires FRONTEND_BASE_URL, E2E_ENABLE_DOCUMENT_UPLOADS=true and disposable E2E_DOCUMENT_PROJECT_ID / E2E_DOCUMENT_CATEGORY_ID."
+      "Requires FRONTEND_BASE_URL, E2E_ENABLE_DOCUMENT_UPLOADS=true and disposable E2E_DOCUMENT_PROJECT_ID / E2E_DOCUMENT_CATEGORY_ID.",
     );
     const projectId = process.env.E2E_DOCUMENT_PROJECT_ID!;
     const categoryId = process.env.E2E_DOCUMENT_CATEGORY_ID!;
@@ -446,7 +446,7 @@ test.describe("Project documents — browser workflow with dedicated storage fix
         {
           search: fileName,
           limit: 100,
-        }
+        },
       );
       const record = list.data.find((item) => item.fileName === fileName);
       expect(record).toBeDefined();
@@ -463,7 +463,7 @@ test.describe("Project documents — browser workflow with dedicated storage fix
       await editedRow.getByRole("button", { name: "Download" }).click();
       const download = page.getByRole("dialog", { name: "Download document" });
       await expect(
-        download.getByRole("link", { name: "Download file" })
+        download.getByRole("link", { name: "Download file" }),
       ).toHaveAttribute("href", /^https:\/\//);
       await download.getByRole("button", { name: "Close dialog" }).click();
       await editedRow.getByRole("button", { name: "Delete" }).click();
@@ -476,7 +476,7 @@ test.describe("Project documents — browser workflow with dedicated storage fix
             await c.request.get(url(`/documents/${documentId}`), {
               headers: c.headers,
             })
-          ).status()
+          ).status(),
         )
         .toBe(404);
       documentId = undefined;
@@ -486,16 +486,16 @@ test.describe("Project documents — browser workflow with dedicated storage fix
         // reading its ID, resolve the uniquely named record for cleanup.
         const list = await c.get<PageResult<{ id: string; fileName: string }>>(
           `/projects/${projectId}/documents`,
-          { search: fileName, limit: 100 }
+          { search: fileName, limit: 100 },
         );
         documentId = list.data.find(
-          (item) => item.fileName === fileName || item.fileName === editedName
+          (item) => item.fileName === fileName || item.fileName === editedName,
         )?.id;
       }
       if (documentId) {
         const deleted = await c.request.delete(
           url(`/documents/${documentId}`),
-          { headers: c.headers }
+          { headers: c.headers },
         );
         expect(deleted.ok(), await deleted.text()).toBeTruthy();
       }
@@ -512,7 +512,7 @@ test.describe("Project UI — role-specific permissions", () => {
     const password = process.env.E2E_ACCOUNTANT_PASSWORD;
     test.skip(
       !process.env.FRONTEND_BASE_URL || !email || !password,
-      "Requires FRONTEND_BASE_URL and Accountant credentials."
+      "Requires FRONTEND_BASE_URL and Accountant credentials.",
     );
     const project = await c.createProject();
     await page.goto("/login");
@@ -522,10 +522,10 @@ test.describe("Project UI — role-specific permissions", () => {
     await expect(page).toHaveURL(/\/modules(?:[/?#]|$)/);
     await page.goto(`/dashboard/projects/${project.id}`);
     await expect(
-      page.getByRole("heading", { name: project.projectName })
+      page.getByRole("heading", { name: project.projectName }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Edit project" })
+      page.getByRole("button", { name: "Edit project" }),
     ).toHaveCount(0);
     const tabs = page.getByRole("navigation", { name: "Project sections" });
     for (const section of ["Tasks", "Milestones"]) {
@@ -533,19 +533,19 @@ test.describe("Project UI — role-specific permissions", () => {
       await expect(
         page.getByRole("button", {
           name: `Add ${section === "Tasks" ? "task" : "milestone"}`,
-        })
+        }),
       ).toHaveCount(0);
     }
     await tabs.getByRole("button", { name: "Documents" }).click();
     await expect(
-      page.getByRole("button", { name: "Upload document" })
+      page.getByRole("button", { name: "Upload document" }),
     ).toHaveCount(0);
     await tabs.getByRole("button", { name: "Expenses" }).click();
     await expect(
-      page.getByRole("button", { name: "Add expense" })
+      page.getByRole("button", { name: "Add expense" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Delete", exact: true })
+      page.getByRole("button", { name: "Delete", exact: true }),
     ).toHaveCount(0);
   });
 
@@ -558,11 +558,11 @@ test.describe("Project UI — role-specific permissions", () => {
     const password = process.env.E2E_PROJECT_MANAGER_PASSWORD;
     test.skip(
       !process.env.FRONTEND_BASE_URL || !email || !password,
-      "Requires FRONTEND_BASE_URL and Project Manager credentials."
+      "Requires FRONTEND_BASE_URL and Project Manager credentials.",
     );
     const token = await login(request, email!, password!);
     const me = await expectOk<{ id: string; role: string }>(
-      await request.get(url("/auth/me"), { headers: bearer(token) })
+      await request.get(url("/auth/me"), { headers: bearer(token) }),
     );
     expect(me.role).toBe("PROJECT_MANAGER");
     const project = await c.createProject({ projectManagerId: me.id });
@@ -573,18 +573,18 @@ test.describe("Project UI — role-specific permissions", () => {
     await expect(page).toHaveURL(/\/modules(?:[/?#]|$)/);
     await page.goto(`/dashboard/projects/${project.id}`);
     await expect(
-      page.getByRole("heading", { name: project.projectName })
+      page.getByRole("heading", { name: project.projectName }),
     ).toBeVisible();
     const tabs = page.getByRole("navigation", { name: "Project sections" });
     await tabs.getByRole("button", { name: "Milestones" }).click();
     await expect(
-      page.getByRole("button", { name: "Add milestone" })
+      page.getByRole("button", { name: "Add milestone" }),
     ).toBeVisible();
     await tabs.getByRole("button", { name: "Tasks" }).click();
     await expect(page.getByRole("button", { name: "Add task" })).toBeVisible();
     await tabs.getByRole("button", { name: "Expenses" }).click();
     await expect(page.getByRole("button", { name: "Add expense" })).toHaveCount(
-      0
+      0,
     );
   });
 });

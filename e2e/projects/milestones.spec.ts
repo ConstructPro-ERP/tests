@@ -23,11 +23,11 @@ test.describe("Milestones — CRUD, weighted progress and constraints", () => {
     });
     expect(
       (await c.get<Milestone[]>(`/projects/${project.id}/milestones`)).map(
-        (m) => m.id
-      )
+        (m) => m.id,
+      ),
     ).toEqual(expect.arrayContaining([a.id, b.id]));
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBeCloseTo(60, 6);
     const renamed = unique("Milestone updated");
     await c.patch<Milestone>(`/milestones/${b.id}`, {
@@ -40,23 +40,23 @@ test.describe("Milestones — CRUD, weighted progress and constraints", () => {
       weight: 6,
     });
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBeCloseTo(62.5, 6);
     await c.patch<Milestone>(`/milestones/${b.id}/progress`, {
       progressPercentage: 100,
     });
     expect((await c.get<Milestone>(`/milestones/${b.id}`)).status).toBe(
-      "COMPLETED"
+      "COMPLETED",
     );
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBeCloseTo(100, 6);
     const reset = await c.patch<Milestone>(`/milestones/${b.id}/progress`, {
       progressPercentage: 0,
     });
     expect(reset.status).toBe("PENDING");
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBeCloseTo(25, 6);
   });
 
@@ -70,7 +70,7 @@ test.describe("Milestones — CRUD, weighted progress and constraints", () => {
         {
           headers: c.headers,
           data: { milestoneName: unique("Invalid"), weight },
-        }
+        },
       );
       expect(response.status()).toBe(400);
     }
@@ -83,12 +83,13 @@ test.describe("Milestones — CRUD, weighted progress and constraints", () => {
     ]) {
       const response = await c.request.patch(
         url(`/milestones/${milestone.id}/progress`),
-        { headers: c.headers, data }
+        { headers: c.headers, data },
       );
       expect(response.status()).toBe(400);
     }
     expect(
-      (await c.get<Milestone>(`/milestones/${milestone.id}`)).progressPercentage
+      (await c.get<Milestone>(`/milestones/${milestone.id}`))
+        .progressPercentage,
     ).toBe(0);
   });
 
@@ -106,7 +107,7 @@ test.describe("Milestones — CRUD, weighted progress and constraints", () => {
     });
     expect(blocked.status()).toBe(409);
     expect((await c.get<Task>(`/tasks/${task.id}`)).milestoneId).toBe(
-      milestone.id
+      milestone.id,
     );
     await c.patch<Task>(`/tasks/${task.id}`, { milestoneId: null });
     const deleted = await c.request.delete(url(`/milestones/${milestone.id}`), {
@@ -114,7 +115,7 @@ test.describe("Milestones — CRUD, weighted progress and constraints", () => {
     });
     expect(deleted.ok()).toBeTruthy();
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBe(0);
   });
 });

@@ -39,7 +39,7 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
     });
     expect([200, 400]).toContain(spoof.status());
     expect((await c.get<Expense>(`/expenses/${expense.id}`)).recordedById).toBe(
-      c.adminId
+      c.adminId,
     );
   });
 
@@ -72,7 +72,7 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
         limit: 1,
         sortBy: "amount",
         sortOrder: "asc",
-      }
+      },
     );
     expect(response.meta).toMatchObject({ total: 2, totalPages: 2 });
     expect(response.data).toHaveLength(1);
@@ -86,7 +86,7 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
       expect.arrayContaining([
         expect.objectContaining({ category: "MATERIAL", amount: "0.30" }),
         expect.objectContaining({ category: "LABOUR", amount: "3.00" }),
-      ])
+      ]),
     );
   });
 
@@ -111,7 +111,7 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
         await c.request.get(url(`/expenses/${expense.id}`), {
           headers: c.headers,
         })
-      ).status()
+      ).status(),
     ).toBe(404);
   });
 
@@ -125,7 +125,7 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
         {
           headers: c.headers,
           data: { amount, expenseDate: "2026-10-10T00:00:00.000Z" },
-        }
+        },
       );
       expect(response.status(), await response.text()).toBe(400);
     }
@@ -144,7 +144,7 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
     }
     const invalidQuery = await c.request.get(
       url(`/projects/${project.id}/expenses`),
-      { headers: c.headers, params: { limit: 101 } }
+      { headers: c.headers, params: { limit: 101 } },
     );
     expect(invalidQuery.status()).toBe(400);
     const invalidRange = await c.request.get(
@@ -152,7 +152,7 @@ test.describe("Project expenses — precision, audit trail and summaries", () =>
       {
         headers: c.headers,
         params: { fromDate: "2026-11-01", toDate: "2026-10-01" },
-      }
+      },
     );
     expect(invalidRange.status()).toBe(400);
   });

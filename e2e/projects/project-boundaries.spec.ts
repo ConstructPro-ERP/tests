@@ -34,21 +34,21 @@ test.describe("Project management — validation and resource boundaries", () =>
 
       expect(
         response.status(),
-        `${JSON.stringify(params)}: ${await response.text()}`
+        `${JSON.stringify(params)}: ${await response.text()}`,
       ).toBe(400);
     }
     expect(
       (
         await c.request.get(url(`/projects/${uuid()}`), { headers: c.headers })
-      ).status()
+      ).status(),
     ).toBe(404);
     expect(
       (
         await c.request.get(url("/projects/not-a-uuid"), { headers: c.headers })
-      ).status()
+      ).status(),
     ).toBe(400);
     expect((await c.get<Project>(`/projects/${created.id}`)).status).toBe(
-      "PLANNING"
+      "PLANNING",
     );
   });
 
@@ -78,7 +78,7 @@ test.describe("Project management — validation and resource boundaries", () =>
     });
     expect([200, 400]).toContain(response.status()); // whitelist strips unknown properties in some deployments.
     expect((await c.get<Project>(`/projects/${project.id}`)).status).toBe(
-      initial.status
+      initial.status,
     );
   });
 
@@ -89,11 +89,11 @@ test.describe("Project management — validation and resource boundaries", () =>
     for (const status of ["ON_HOLD", "COMPLETED", "SOMETHING_ELSE"]) {
       const response = await c.request.patch(
         url(`/projects/${project.id}/status`),
-        { headers: c.headers, data: { status } }
+        { headers: c.headers, data: { status } },
       );
       expect(response.status(), await response.text()).toBe(400);
       expect((await c.get<Project>(`/projects/${project.id}`)).status).toBe(
-        "PLANNING"
+        "PLANNING",
       );
     }
   });
@@ -130,7 +130,7 @@ test.describe("Project management — validation and resource boundaries", () =>
           headers: c.headers,
           data: { status: "BLOCKED" },
         })
-      ).status()
+      ).status(),
     ).toBe(400);
     const invalidTaskQueries: Record<string, string | number | boolean>[] = [
       { projectId: "bad" },
@@ -156,7 +156,7 @@ test.describe("Project management — validation and resource boundaries", () =>
     expect(
       (
         await c.request.get(url(`/tasks/${uuid()}`), { headers: c.headers })
-      ).status()
+      ).status(),
     ).toBe(404);
   });
 
@@ -186,7 +186,7 @@ test.describe("Project management — validation and resource boundaries", () =>
       dueDate: "2026-10-02T00:00:00.000Z",
     });
     const initial = await c.get<Milestone & { isDelayed: boolean }>(
-      `/milestones/${milestone.id}`
+      `/milestones/${milestone.id}`,
     );
     expect(initial.status).toBe("PENDING");
     expect(initial.isDelayed).toBe(true);
@@ -194,7 +194,7 @@ test.describe("Project management — validation and resource boundaries", () =>
       progressPercentage: 100,
     });
     const completed = await c.get<Milestone & { isDelayed: boolean }>(
-      `/milestones/${milestone.id}`
+      `/milestones/${milestone.id}`,
     );
     expect(completed).toMatchObject({
       status: "COMPLETED",
@@ -206,7 +206,7 @@ test.describe("Project management — validation and resource boundaries", () =>
       progressPercentage: 35,
     });
     const reopened = await c.get<Milestone & { isDelayed: boolean }>(
-      `/milestones/${milestone.id}`
+      `/milestones/${milestone.id}`,
     );
     expect(reopened.status).toBe("IN_PROGRESS");
     expect(reopened.completedAt).toBeNull();
@@ -234,7 +234,7 @@ test.describe("Project management — validation and resource boundaries", () =>
     ]) {
       const response = await c.request.post(
         url(`/projects/${project.id}/milestones`),
-        { headers: c.headers, data }
+        { headers: c.headers, data },
       );
       expect(response.status(), await response.text()).toBe(400);
     }
@@ -243,7 +243,7 @@ test.describe("Project management — validation and resource boundaries", () =>
         await c.request.get(url(`/milestones/${uuid()}`), {
           headers: c.headers,
         })
-      ).status()
+      ).status(),
     ).toBe(404);
   });
 
@@ -257,10 +257,10 @@ test.describe("Project management — validation and resource boundaries", () =>
     const tasks = await c.get<{ data: Task[] }>(`/projects/${second.id}/tasks`);
     expect(tasks.data.find((item) => item.id === task.id)).toBeUndefined();
     const expenses = await c.get<{ data: { id: string }[] }>(
-      `/projects/${second.id}/expenses`
+      `/projects/${second.id}/expenses`,
     );
     expect(
-      expenses.data.find((item) => item.id === expense.id)
+      expenses.data.find((item) => item.id === expense.id),
     ).toBeUndefined();
   });
 });

@@ -28,17 +28,17 @@ test.describe("Project management — cross-module integration", () => {
     });
 
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBeCloseTo(9, 5);
     expect((await c.get<Task>(`/tasks/${task.id}`)).milestoneId).toBe(
-      foundation.id
+      foundation.id,
     );
     expect((await c.get<Expense>(`/expenses/${expense.id}`)).projectId).toBe(
-      project.id
+      project.id,
     );
     await c.patch<Task>(`/tasks/${task.id}/status`, { status: "COMPLETED" });
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBeCloseTo(9, 5);
     await c.patch<Milestone>(`/milestones/${foundation.id}/progress`, {
       progressPercentage: 100,
@@ -47,11 +47,11 @@ test.describe("Project management — cross-module integration", () => {
       progressPercentage: 100,
     });
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${project.id}`)).progressPercentage,
     ).toBeCloseTo(100, 5);
     // A PLANNING project with 100% calculated progress is not automatically completed.
     expect((await c.get<Project>(`/projects/${project.id}`)).status).toBe(
-      "PLANNING"
+      "PLANNING",
     );
     // Even with 100% progress, a planning project cannot jump straight to COMPLETED.
     expect(
@@ -60,7 +60,7 @@ test.describe("Project management — cross-module integration", () => {
           headers: c.headers,
           data: { status: "COMPLETED" },
         })
-      ).status()
+      ).status(),
     ).toBe(400);
   });
 
@@ -83,10 +83,10 @@ test.describe("Project management — cross-module integration", () => {
     });
     expect([400, 404], await response.text()).toContain(response.status());
     expect(
-      (await c.get<Project>(`/projects/${first.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${first.id}`)).progressPercentage,
     ).toBe(0);
     expect(
-      (await c.get<Project>(`/projects/${second.id}`)).progressPercentage
+      (await c.get<Project>(`/projects/${second.id}`)).progressPercentage,
     ).toBeCloseTo(80, 6);
   });
 });

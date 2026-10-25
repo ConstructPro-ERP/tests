@@ -20,21 +20,21 @@ test.describe("Project resources — concurrent modification integrity", () => {
         c.request.patch(url(`/milestones/${milestone.id}/progress`), {
           headers: c.headers,
           data: { progressPercentage },
-        })
-      )
+        }),
+      ),
     );
     for (const response of responses) {
       expect([200, 409], await response.text()).toContain(response.status());
     }
     expect(responses.some((response) => response.ok())).toBe(true);
     const savedMilestone = await c.get<Milestone>(
-      `/milestones/${milestone.id}`
+      `/milestones/${milestone.id}`,
     );
     const savedProject = await c.get<Project>(`/projects/${project.id}`);
     expect([25, 75]).toContain(savedMilestone.progressPercentage);
     expect(savedProject.progressPercentage).toBeCloseTo(
       savedMilestone.progressPercentage,
-      6
+      6,
     );
     expect(savedMilestone.status).toBe("IN_PROGRESS");
   });
@@ -53,8 +53,8 @@ test.describe("Project resources — concurrent modification integrity", () => {
             description: `E2E concurrent ${i}`,
             expenseDate: "2026-10-10T00:00:00.000Z",
           },
-        })
-      )
+        }),
+      ),
     );
     const identifiers: string[] = [];
     for (const response of writes) {
@@ -72,7 +72,7 @@ test.describe("Project resources — concurrent modification integrity", () => {
     }>(`/projects/${project.id}/expenses/summary`);
     expect(summary.total).toBe("0.50");
     expect(summary.byCategory).toContainEqual(
-      expect.objectContaining({ category: "CONCURRENCY", amount: "0.50" })
+      expect.objectContaining({ category: "CONCURRENCY", amount: "0.50" }),
     );
   });
 });

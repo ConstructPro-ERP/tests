@@ -36,7 +36,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
     test.skip(
       process.env.E2E_ALLOW_PERSISTENT_LIFECYCLE_WRITES !== "true" ||
         !process.env.E2E_LEAD_ID,
-      "Set E2E_ALLOW_PERSISTENT_LIFECYCLE_WRITES=true and a disposable E2E_LEAD_ID; this creates nondeletable staging records."
+      "Set E2E_ALLOW_PERSISTENT_LIFECYCLE_WRITES=true and a disposable E2E_LEAD_ID; this creates nondeletable staging records.",
     );
   });
 
@@ -50,7 +50,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
       process.env.E2E_ADMIN_PASSWORD?.trim() || process.env.E2E_USER_PASSWORD!;
     const headers = bearer(await login(request, email, password));
     const me = await expectOk<{ id: string; role: string }>(
-      await request.get(url("/auth/me"), { headers })
+      await request.get(url("/auth/me"), { headers }),
     );
     expect(me.role).toBe("ADMIN");
 
@@ -68,7 +68,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
             },
           ],
         },
-      })
+      }),
     );
     expect(quotation.status).toBe("PENDING_APPROVAL");
     const approved = await expectOk<Conversion>(
@@ -80,7 +80,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
           startDate: "2026-10-01T00:00:00.000Z",
           endDate: "2027-10-01T00:00:00.000Z",
         },
-      })
+      }),
     );
     expect(approved.quotation.status).toBe("CONVERTED");
     expect(approved.quotation.projectId).toBe(approved.projectId);
@@ -92,7 +92,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
 
     const duplicate = await request.patch(
       url(`/quotations/${quotation.id}/approve`),
-      { headers, data: { projectName: unique("Duplicate") } }
+      { headers, data: { projectName: unique("Duplicate") } },
     );
     expect(duplicate.status()).toBe(409);
     expect((await getProject()).status).toBe("ACTIVE");
@@ -122,7 +122,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
           weight: 5,
           progressPercentage: 50,
         },
-      })
+      }),
     );
     const task = await expectOk<Task>(
       await request.post(url("/tasks"), {
@@ -132,13 +132,13 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
           taskName: unique("Lifecycle task"),
           milestoneId: milestone.id,
         },
-      })
+      }),
     );
     const expense = await expectOk<Expense>(
       await request.post(url(`${path}/expenses`), {
         headers,
         data: { amount: "9.99", expenseDate: "2026-10-10T00:00:00.000Z" },
-      })
+      }),
     );
     expect((await getProject()).progressPercentage).toBe(50);
     const premature = await request.patch(url(`${path}/status`), {
@@ -151,7 +151,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
       await request.patch(url(`/milestones/${milestone.id}/progress`), {
         headers,
         data: { progressPercentage: 100 },
-      })
+      }),
     );
     expect((await getProject()).progressPercentage).toBe(100);
     const close = await request.patch(url(`${path}/status`), {
@@ -184,7 +184,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
     ] as const) {
       const response = await request.post(url(pathPart), { headers, data });
       expect(response.status(), `${pathPart}: ${await response.text()}`).toBe(
-        409
+        409,
       );
     }
     for (const [pathPart, data] of [
@@ -197,7 +197,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
     ] as const) {
       const response = await request.patch(url(pathPart), { headers, data });
       expect(response.status(), `${pathPart}: ${await response.text()}`).toBe(
-        409
+        409,
       );
     }
     for (const pathPart of [
@@ -207,7 +207,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
     ]) {
       const response = await request.delete(url(pathPart), { headers });
       expect(response.status(), `${pathPart}: ${await response.text()}`).toBe(
-        409
+        409,
       );
     }
     expect((await request.delete(url(path), { headers })).status()).toBe(409);
@@ -217,7 +217,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
           headers,
           data: { status: "ACTIVE" },
         })
-      ).status()
+      ).status(),
     ).toBe(400);
     expect((await getProject()).status).toBe("COMPLETED");
   });
@@ -231,7 +231,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
       process.env.E2E_ADMIN_PASSWORD?.trim() || process.env.E2E_USER_PASSWORD!;
     const headers = bearer(await login(request, email, password));
     const me = await expectOk<{ id: string; role: string }>(
-      await request.get(url("/auth/me"), { headers })
+      await request.get(url("/auth/me"), { headers }),
     );
     expect(me.role).toBe("ADMIN");
     const project = await expectOk<Project>(
@@ -242,7 +242,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
           projectManagerId: me.id,
           startDate: "2026-10-01T00:00:00.000Z",
         },
-      })
+      }),
     );
     const cancel = await request.patch(url(`/projects/${project.id}/status`), {
       headers,
@@ -252,9 +252,9 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
     expect(
       (
         await expectOk<Project>(
-          await request.get(url(`/projects/${project.id}`), { headers })
+          await request.get(url(`/projects/${project.id}`), { headers }),
         )
-      ).status
+      ).status,
     ).toBe("CANCELLED");
     expect(
       (
@@ -262,12 +262,12 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
           headers,
           data: { status: "ACTIVE" },
         })
-      ).status()
+      ).status(),
     ).toBe(400);
     expect(
       (
         await request.delete(url(`/projects/${project.id}`), { headers })
-      ).status()
+      ).status(),
     ).toBe(409);
     expect(
       (
@@ -275,7 +275,7 @@ test.describe("Project lifecycle — quotation conversion, closure and write loc
           headers,
           data: { amount: "1.01", expenseDate: "2026-10-10T00:00:00.000Z" },
         })
-      ).status()
+      ).status(),
     ).toBe(409);
   });
 });

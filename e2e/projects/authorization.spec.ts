@@ -39,17 +39,17 @@ test.describe("Project resources — role authorization", () => {
   }) => {
     test.skip(
       !process.env.E2E_ACCOUNTANT_EMAIL || !process.env.E2E_ACCOUNTANT_PASSWORD,
-      "Set E2E_ACCOUNTANT_EMAIL and E2E_ACCOUNTANT_PASSWORD."
+      "Set E2E_ACCOUNTANT_EMAIL and E2E_ACCOUNTANT_PASSWORD.",
     );
     const accountant = bearer(
       await login(
         request,
         process.env.E2E_ACCOUNTANT_EMAIL!,
-        process.env.E2E_ACCOUNTANT_PASSWORD!
-      )
+        process.env.E2E_ACCOUNTANT_PASSWORD!,
+      ),
     );
     expect(
-      (await request.get(url("/projects"), { headers: accountant })).status()
+      (await request.get(url("/projects"), { headers: accountant })).status(),
     ).toBe(200);
     const project = await c.createProject();
     for (const path of [
@@ -72,7 +72,7 @@ test.describe("Project resources — role authorization", () => {
       await request.post(url(`/projects/${project.id}/expenses`), {
         headers: accountant,
         data: { amount: "1.01", expenseDate: "2026-10-15T00:00:00.000Z" },
-      })
+      }),
     );
     try {
       // Accountant can create and edit, but cannot delete an expense.
@@ -82,14 +82,14 @@ test.describe("Project resources — role authorization", () => {
             headers: accountant,
             data: { amount: "2.01" },
           })
-        ).ok()
+        ).ok(),
       ).toBeTruthy();
       expect(
         (
           await request.delete(url(`/expenses/${expense.id}`), {
             headers: accountant,
           })
-        ).status()
+        ).status(),
       ).toBe(403);
     } finally {
       // Cleanup with Admin, as the Accountant is not allowed to delete.
@@ -98,7 +98,7 @@ test.describe("Project resources — role authorization", () => {
           await request.delete(url(`/expenses/${expense.id}`), {
             headers: c.headers,
           })
-        ).ok()
+        ).ok(),
       ).toBeTruthy();
     }
   });
@@ -110,20 +110,20 @@ test.describe("Project resources — role authorization", () => {
     test.skip(
       !process.env.E2E_PROJECT_MANAGER_EMAIL ||
         !process.env.E2E_PROJECT_MANAGER_PASSWORD,
-      "Set E2E_PROJECT_MANAGER_EMAIL and E2E_PROJECT_MANAGER_PASSWORD."
+      "Set E2E_PROJECT_MANAGER_EMAIL and E2E_PROJECT_MANAGER_PASSWORD.",
     );
     const manager = bearer(
       await login(
         request,
         process.env.E2E_PROJECT_MANAGER_EMAIL!,
-        process.env.E2E_PROJECT_MANAGER_PASSWORD!
-      )
+        process.env.E2E_PROJECT_MANAGER_PASSWORD!,
+      ),
     );
     const project = await c.createProject();
     expect(
       (
         await request.post(url("/projects"), { headers: manager, data: {} })
-      ).status()
+      ).status(),
     ).toBe(403);
     expect(
       (
@@ -131,7 +131,7 @@ test.describe("Project resources — role authorization", () => {
           headers: manager,
           data: {},
         })
-      ).status()
+      ).status(),
     ).toBe(403);
     // Project managers cannot modify projects they have not been assigned to.
     expect(
@@ -140,12 +140,12 @@ test.describe("Project resources — role authorization", () => {
           headers: manager,
           data: { projectName: "Forbidden" },
         })
-      ).status()
+      ).status(),
     ).toBe(403);
     expect(
       (
         await request.get(url(`/projects/${project.id}`), { headers: manager })
-      ).status()
+      ).status(),
     ).toBe(403);
     for (const foreignPath of [
       `/projects/${project.id}/tasks`,
@@ -155,11 +155,11 @@ test.describe("Project resources — role authorization", () => {
       `/projects/${project.id}/documents`,
     ]) {
       expect(
-        (await request.get(url(foreignPath), { headers: manager })).status()
+        (await request.get(url(foreignPath), { headers: manager })).status(),
       ).toBe(403);
     }
     const projects = await expectOk<{ data: Project[] }>(
-      await request.get(url("/projects"), { headers: manager })
+      await request.get(url("/projects"), { headers: manager }),
     );
     expect(projects.data.some((item) => item.id === project.id)).toBe(false);
   });
@@ -167,19 +167,19 @@ test.describe("Project resources — role authorization", () => {
   test("ACCOUNTANT cannot mutate document categories", async ({ request }) => {
     test.skip(
       !process.env.E2E_ACCOUNTANT_EMAIL || !process.env.E2E_ACCOUNTANT_PASSWORD,
-      "Set E2E_ACCOUNTANT_EMAIL and E2E_ACCOUNTANT_PASSWORD."
+      "Set E2E_ACCOUNTANT_EMAIL and E2E_ACCOUNTANT_PASSWORD.",
     );
     const accountant = bearer(
       await login(
         request,
         process.env.E2E_ACCOUNTANT_EMAIL!,
-        process.env.E2E_ACCOUNTANT_PASSWORD!
-      )
+        process.env.E2E_ACCOUNTANT_PASSWORD!,
+      ),
     );
     expect(
       (
         await request.get(url("/document-categories"), { headers: accountant })
-      ).ok()
+      ).ok(),
     ).toBeTruthy();
     expect(
       (
@@ -187,7 +187,7 @@ test.describe("Project resources — role authorization", () => {
           headers: accountant,
           data: {},
         })
-      ).status()
+      ).status(),
     ).toBe(403);
     const seeded = process.env.E2E_DOCUMENT_PROJECT_ID?.trim();
     if (seeded) {
@@ -198,9 +198,9 @@ test.describe("Project resources — role authorization", () => {
             {
               headers: accountant,
               data: {},
-            }
+            },
           )
-        ).status()
+        ).status(),
       ).toBe(403);
     }
   });

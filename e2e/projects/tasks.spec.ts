@@ -39,17 +39,18 @@ test.describe("Tasks — project and milestone resources", () => {
     await c.patch<Task>(`/tasks/${task.id}/status`, { status: "COMPLETED" });
     // Task completion must NOT automatically change milestone progress.
     expect(
-      (await c.get<Milestone>(`/milestones/${milestone.id}`)).progressPercentage
+      (await c.get<Milestone>(`/milestones/${milestone.id}`))
+        .progressPercentage,
     ).toBe(0);
     expect(
       (
         await c.request.delete(url(`/tasks/${task.id}`), { headers: c.headers })
-      ).ok()
+      ).ok(),
     ).toBeTruthy();
     expect(
       (
         await c.request.get(url(`/tasks/${task.id}`), { headers: c.headers })
-      ).status()
+      ).status(),
     ).toBe(404);
   });
 
@@ -91,7 +92,7 @@ test.describe("Tasks — project and milestone resources", () => {
       const global = await c.get<PageResult<Task>>("/tasks", filter);
       const scoped = await c.get<PageResult<Task>>(
         `/projects/${project.id}/tasks`,
-        filter
+        filter,
       );
       for (const result of [global, scoped]) {
         expect(result.meta).toMatchObject({ total: 2, page, totalPages: 2 });
@@ -100,7 +101,7 @@ test.describe("Tasks — project and milestone resources", () => {
     }
     const assignees = await c.get<PageResult<{ id: string; fullName: string }>>(
       `/projects/${project.id}/task-assignees`,
-      { page: 1, limit: 100 }
+      { page: 1, limit: 100 },
     );
     expect(assignees.data.some((user) => user.id === c.adminId)).toBeTruthy();
   });

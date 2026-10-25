@@ -39,9 +39,11 @@ references and consume its outstanding balance.
    npx playwright install chromium
    ```
 3. **Configure the environment:**
+
    ```bash
    cp .env.example .env
    ```
+
    Playwright loads `.env` locally. In CI, configure the same names in the
    repository secret store. The suite does not commit or print credentials.
 
@@ -91,12 +93,12 @@ existing `.env`. `.env.example` is not loaded automatically. Playwright loads
 the `.env` next to its config even when launched from another directory, and
 existing process/CI environment variables take precedence. Keep `.env` private.
 
-| Suite | Coverage |
-| --- | --- |
-| `user-management.spec.ts` | Browser create/search/edit/deactivate/reactivate, role assignment, persisted details, password redaction, duplicate email and invalid input |
-| `leads.spec.ts` | Browser capture/search/edit/note/delete, assignment, status, note/contact persistence and removal, search/filter/pagination, invalid input |
-| `clients.spec.ts` | API create/list/read/update/delete, lead association, duplicate association, invalid input and missing records |
-| `management-authorization.spec.ts` | Anonymous read/write rejection and optional accountant access restrictions |
+| Suite                              | Coverage                                                                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `user-management.spec.ts`          | Browser create/search/edit/deactivate/reactivate, role assignment, persisted details, password redaction, duplicate email and invalid input |
+| `leads.spec.ts`                    | Browser capture/search/edit/note/delete, assignment, status, note/contact persistence and removal, search/filter/pagination, invalid input  |
+| `clients.spec.ts`                  | API create/list/read/update/delete, lead association, duplicate association, invalid input and missing records                              |
+| `management-authorization.spec.ts` | Anonymous read/write rejection and optional accountant access restrictions                                                                  |
 
 Clients have no dedicated management page in the current frontend; client tests
 exercise the deployed API gateway and backing service. Browser tests use real
@@ -134,13 +136,13 @@ N/A (Testing Repository)
 
 ## Commands and local configuration
 
-| Command | Purpose |
-| --- | --- |
-| `npm test` / `npm run test:e2e` | Run all Playwright suites |
-| `npm run test:e2e:headed` | Run with a visible browser |
-| `npm run test:e2e:ui` | Open Playwright UI mode |
-| `npm run test:e2e -- --list` | Discover all tests without running workflows |
-| `npx playwright show-report` | Open the local HTML report |
+| Command                         | Purpose                                      |
+| ------------------------------- | -------------------------------------------- |
+| `npm test` / `npm run test:e2e` | Run all Playwright suites                    |
+| `npm run test:e2e:headed`       | Run with a visible browser                   |
+| `npm run test:e2e:ui`           | Open Playwright UI mode                      |
+| `npm run test:e2e -- --list`    | Discover all tests without running workflows |
+| `npx playwright show-report`    | Open the local HTML report                   |
 
 For local development, set `FRONTEND_BASE_URL=http://localhost:3000` and
 `API_BASE_URL=http://localhost:4000/api`. Use HTTP unless you configured local
@@ -160,12 +162,12 @@ retries. Allow enough disposable data for repeated state-changing tests.
 
 ## Repository layout
 
-| Path | Responsibility |
-| --- | --- |
-| `e2e/` | Browser and API workflow specifications |
-| `e2e/support/` | API helpers, contracts, credentials, and cleanup fixtures |
-| `playwright.config.ts` | Environment loading, browser, timeouts, and evidence |
-| `.github/workflows/ci.yml` | Caller for the shared infrastructure workflow |
+| Path                       | Responsibility                                            |
+| -------------------------- | --------------------------------------------------------- |
+| `e2e/`                     | Browser and API workflow specifications                   |
+| `e2e/support/`             | API helpers, contracts, credentials, and cleanup fixtures |
+| `playwright.config.ts`     | Environment loading, browser, timeouts, and evidence      |
+| `.github/workflows/ci.yml` | Caller for the shared infrastructure workflow             |
 
 Frontend unit/component tests live in `frontend`; backend unit, route, and database
 tests live in `backend`. This repository tests their integration against running

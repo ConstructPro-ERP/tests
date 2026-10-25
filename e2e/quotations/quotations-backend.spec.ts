@@ -1,9 +1,16 @@
 import { test, expect } from "@playwright/test";
-import { apiBaseUrl, bearer, expectOk, login, requiredEnv } from "../support/api";
+import {
+  apiBaseUrl,
+  bearer,
+  expectOk,
+  login,
+  requiredEnv,
+} from "../support/api";
 import type { Quotation } from "../support/contracts";
 import { round2 } from "./quotation.fixtures";
 
-test.describe.serial("Quotation Service — Backend Integration API Suite", () => {
+test.describe
+  .serial("Quotation Service — Backend Integration API Suite", () => {
   let token: string;
   let testQuotationId: string;
   let leadId: string;
@@ -16,7 +23,10 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
       process.env.E2E_USER_PASSWORD || process.env.TEST_ADMIN_PASSWORD,
     );
 
-    leadId = process.env.E2E_LEAD_ID || process.env.TEST_LEAD_ID || "00000000-0000-0000-0000-000000000001";
+    leadId =
+      process.env.E2E_LEAD_ID ||
+      process.env.TEST_LEAD_ID ||
+      "00000000-0000-0000-0000-000000000001";
   });
 
   const authHeaders = () => ({
@@ -32,14 +42,24 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
     const item1Price = 120.5;
     const item2Qty = 20;
     const item2Price = 45.25;
-    const expectedSubtotal = round2(item1Qty * item1Price + item2Qty * item2Price); // 1807.50 + 905.00 = 2712.50
+    const expectedSubtotal = round2(
+      item1Qty * item1Price + item2Qty * item2Price,
+    ); // 1807.50 + 905.00 = 2712.50
 
     const payload = {
       leadId,
       notes: "Integration API automated test quotation",
       items: [
-        { itemName: "Structural Concrete Grade 30", quantity: item1Qty, unitPrice: item1Price },
-        { itemName: "Reinforced Steel Rods (12mm)", quantity: item2Qty, unitPrice: item2Price },
+        {
+          itemName: "Structural Concrete Grade 30",
+          quantity: item1Qty,
+          unitPrice: item1Price,
+        },
+        {
+          itemName: "Reinforced Steel Rods (12mm)",
+          quantity: item2Qty,
+          unitPrice: item2Price,
+        },
       ],
     };
 
@@ -48,7 +68,10 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
       data: payload,
     });
 
-    expect(response.status(), `Create quotation failed: ${await response.text()}`).toBe(201);
+    expect(
+      response.status(),
+      `Create quotation failed: ${await response.text()}`,
+    ).toBe(201);
     const body = await expectOk<Quotation>(response);
 
     expect(body).toHaveProperty("id");
@@ -66,11 +89,17 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
   test("BE-02: GET /quotations/:id returns quotation details with nested line items", async ({
     request,
   }) => {
-    expect(testQuotationId, "Quotation must be created before querying").toBeDefined();
+    expect(
+      testQuotationId,
+      "Quotation must be created before querying",
+    ).toBeDefined();
 
-    const response = await request.get(`${apiBaseUrl()}/quotations/${testQuotationId}`, {
-      headers: authHeaders(),
-    });
+    const response = await request.get(
+      `${apiBaseUrl()}/quotations/${testQuotationId}`,
+      {
+        headers: authHeaders(),
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await expectOk<Quotation>(response);
@@ -79,10 +108,15 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
   });
 
   // BE-03: Filter & Pagination
-  test("BE-03: GET /quotations filters by status with pagination metadata", async ({ request }) => {
-    const response = await request.get(`${apiBaseUrl()}/quotations?limit=10&page=1`, {
-      headers: authHeaders(),
-    });
+  test("BE-03: GET /quotations filters by status with pagination metadata", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `${apiBaseUrl()}/quotations?limit=10&page=1`,
+      {
+        headers: authHeaders(),
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -103,14 +137,21 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
     const updatePayload = {
       notes: "Updated quantities for dynamic calculation verification",
       items: [
-        { itemName: "Structural Concrete Grade 30", quantity: newQty, unitPrice: newPrice },
+        {
+          itemName: "Structural Concrete Grade 30",
+          quantity: newQty,
+          unitPrice: newPrice,
+        },
       ],
     };
 
-    const response = await request.put(`${apiBaseUrl()}/quotations/${testQuotationId}`, {
-      headers: authHeaders(),
-      data: updatePayload,
-    });
+    const response = await request.put(
+      `${apiBaseUrl()}/quotations/${testQuotationId}`,
+      {
+        headers: authHeaders(),
+        data: updatePayload,
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await expectOk<Quotation>(response);
@@ -125,19 +166,25 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
     expect(testQuotationId).toBeDefined();
 
     // 1. Reject quotation
-    const rejectResponse = await request.patch(`${apiBaseUrl()}/quotations/${testQuotationId}/reject`, {
-      headers: authHeaders(),
-      data: { reason: "Budget limit exceeded by client" },
-    });
+    const rejectResponse = await request.patch(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/reject`,
+      {
+        headers: authHeaders(),
+        data: { reason: "Budget limit exceeded by client" },
+      },
+    );
 
     expect(rejectResponse.status()).toBe(200);
     const rejectedBody = await expectOk<Quotation>(rejectResponse);
     expect(rejectedBody.status).toBe("REJECTED");
 
     // 2. Revise quotation
-    const reviseResponse = await request.patch(`${apiBaseUrl()}/quotations/${testQuotationId}/revise`, {
-      headers: authHeaders(),
-    });
+    const reviseResponse = await request.patch(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/revise`,
+      {
+        headers: authHeaders(),
+      },
+    );
 
     expect(reviseResponse.status()).toBe(200);
     const revisedBody = await expectOk<Quotation>(reviseResponse);
@@ -156,10 +203,13 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
       budget: 1205.0,
     };
 
-    const response = await request.patch(`${apiBaseUrl()}/quotations/${testQuotationId}/approve`, {
-      headers: authHeaders(),
-      data: approvePayload,
-    });
+    const response = await request.patch(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/approve`,
+      {
+        headers: authHeaders(),
+        data: approvePayload,
+      },
+    );
 
     expect(response.status()).toBe(200);
     const body = await expectOk<Quotation>(response);
@@ -167,29 +217,41 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
   });
 
   // BE-07: Guardrail Against Duplicate Conversion
-  test("BE-07: GUARD: Duplicate conversion attempt is blocked", async ({ request }) => {
+  test("BE-07: GUARD: Duplicate conversion attempt is blocked", async ({
+    request,
+  }) => {
     expect(testQuotationId).toBeDefined();
 
-    const duplicateResponse = await request.patch(`${apiBaseUrl()}/quotations/${testQuotationId}/approve`, {
-      headers: authHeaders(),
-      data: {
-        projectName: "Illegal Duplicate Project Conversion Attempt",
+    const duplicateResponse = await request.patch(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/approve`,
+      {
+        headers: authHeaders(),
+        data: {
+          projectName: "Illegal Duplicate Project Conversion Attempt",
+        },
       },
-    });
+    );
 
     expect([400, 409]).toContain(duplicateResponse.status());
     const errBody = await duplicateResponse.json();
     const errorText = JSON.stringify(errBody);
-    expect(errorText).toMatch(/(already converted|invalid|status|transition|cannot approve)/i);
+    expect(errorText).toMatch(
+      /(already converted|invalid|status|transition|cannot approve)/i,
+    );
   });
 
   // BE-08: Resilient PDF Generation / Download
-  test("BE-08: GET /quotations/:id/pdf returns valid document URL or PDF stream", async ({ request }) => {
+  test("BE-08: GET /quotations/:id/pdf returns valid document URL or PDF stream", async ({
+    request,
+  }) => {
     expect(testQuotationId).toBeDefined();
 
-    const response = await request.get(`${apiBaseUrl()}/quotations/${testQuotationId}/pdf`, {
-      headers: authHeaders(),
-    });
+    const response = await request.get(
+      `${apiBaseUrl()}/quotations/${testQuotationId}/pdf`,
+      {
+        headers: authHeaders(),
+      },
+    );
 
     expect(response.ok()).toBeTruthy();
     const contentType = response.headers()["content-type"] || "";
@@ -204,7 +266,9 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
   });
 
   // BE-09: RBAC & Role Restriction Enforcement
-  test("BE-09: RBAC: Unauthenticated and unauthorized requests are rejected", async ({ request }) => {
+  test("BE-09: RBAC: Unauthenticated and unauthorized requests are rejected", async ({
+    request,
+  }) => {
     // 1. Missing Authorization header -> 401 Unauthorized
     const unauthenticated = await request.post(`${apiBaseUrl()}/quotations`, {
       data: { leadId, items: [] },
@@ -212,7 +276,10 @@ test.describe.serial("Quotation Service — Backend Integration API Suite", () =
     expect(unauthenticated.status()).toBe(401);
 
     // 2. Restricted Role -> 403 Forbidden (if restricted credentials provided)
-    if (process.env.E2E_RESTRICTED_USER_EMAIL && process.env.E2E_RESTRICTED_USER_PASSWORD) {
+    if (
+      process.env.E2E_RESTRICTED_USER_EMAIL &&
+      process.env.E2E_RESTRICTED_USER_PASSWORD
+    ) {
       const restrictedToken = await login(
         request,
         process.env.E2E_RESTRICTED_USER_EMAIL,

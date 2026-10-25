@@ -35,14 +35,14 @@ test.describe("Projects — gateway and persistence", () => {
         await c.request.delete(url(`/projects/${project.id}`), {
           headers: c.headers,
         })
-      ).ok()
+      ).ok(),
     ).toBeTruthy();
     expect(
       (
         await c.request.get(url(`/projects/${project.id}`), {
           headers: c.headers,
         })
-      ).status()
+      ).status(),
     ).toBe(404);
   });
 
@@ -112,7 +112,7 @@ test.describe("Projects — gateway and persistence", () => {
       expect(response.status(), await response.text()).toBe(400);
     }
     expect((await c.get<Project>(`/projects/${project.id}`)).status).toBe(
-      "PLANNING"
+      "PLANNING",
     );
   });
 
@@ -126,7 +126,7 @@ test.describe("Projects — gateway and persistence", () => {
     });
     expect(response.status()).toBe(409);
     expect((await c.get<Project>(`/projects/${project.id}`)).id).toBe(
-      project.id
+      project.id,
     );
   });
 
@@ -139,11 +139,11 @@ test.describe("Projects — gateway and persistence", () => {
       {
         headers: c.headers,
         data: { status: "ACTIVE" },
-      }
+      },
     );
     expect(result.status()).toBe(400);
     expect((await c.get<Project>(`/projects/${project.id}`)).status).toBe(
-      "PLANNING"
+      "PLANNING",
     );
   });
 
@@ -153,14 +153,14 @@ test.describe("Projects — gateway and persistence", () => {
     const alternate = process.env.E2E_ALTERNATE_PROJECT_MANAGER_ID?.trim();
     test.skip(
       !alternate,
-      "Set E2E_ALTERNATE_PROJECT_MANAGER_ID to an active ADMIN or PROJECT_MANAGER user."
+      "Set E2E_ALTERNATE_PROJECT_MANAGER_ID to an active ADMIN or PROJECT_MANAGER user.",
     );
     const project = await c.createProject();
     await c.patch<Project>(`/projects/${project.id}/manager`, {
       projectManagerId: alternate,
     });
     expect(
-      (await c.get<Project>(`/projects/${project.id}`)).projectManagerId
+      (await c.get<Project>(`/projects/${project.id}`)).projectManagerId,
     ).toBe(alternate);
     // Restore original assignment before fixture cleanup.
     await c.patch<Project>(`/projects/${project.id}/manager`, {

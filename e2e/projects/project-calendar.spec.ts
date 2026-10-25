@@ -20,7 +20,7 @@ test.describe("Project Calendar — real connected calendar workflow", () => {
     const result = await c.get<CalendarConnection>("/calendar/status");
     expect(result.connected).toEqual(expect.any(Boolean));
     expect(
-      result.calendarId === null || typeof result.calendarId === "string"
+      result.calendarId === null || typeof result.calendarId === "string",
     ).toBe(true);
   });
 
@@ -30,12 +30,12 @@ test.describe("Project Calendar — real connected calendar workflow", () => {
     test.setTimeout(180_000);
     test.skip(
       process.env.E2E_ENABLE_CALENDAR_WRITES !== "true",
-      "Set E2E_ENABLE_CALENDAR_WRITES=true for a dedicated connected staging Google account."
+      "Set E2E_ENABLE_CALENDAR_WRITES=true for a dedicated connected staging Google account.",
     );
     const status = await c.get<CalendarConnection>("/calendar/status");
     test.skip(
       !status.connected,
-      "The ADMIN staging account needs a connected Google Calendar."
+      "The ADMIN staging account needs a connected Google Calendar.",
     );
     const project = await c.createProject();
     const title = unique("E2E Site Meeting");
@@ -62,7 +62,7 @@ test.describe("Project Calendar — real connected calendar workflow", () => {
       expect(events).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ id: event.id, summary: title }),
-        ])
+        ]),
       );
       const renamed = `${title} revised`;
       const result = await c.request.patch(
@@ -71,7 +71,7 @@ test.describe("Project Calendar — real connected calendar workflow", () => {
           headers: c.headers,
           params: { projectId: project.id },
           data: { summary: renamed },
-        }
+        },
       );
       expect(result.ok(), await result.text()).toBeTruthy();
       const updated = await c.get<CalendarEvent[]>("/calendar/events", {
@@ -81,7 +81,7 @@ test.describe("Project Calendar — real connected calendar workflow", () => {
         maxResults: 100,
       });
       expect(updated.find((item) => item.id === event.id)?.summary).toBe(
-        renamed
+        renamed,
       );
     } finally {
       const removed = await c.request.delete(
@@ -89,7 +89,7 @@ test.describe("Project Calendar — real connected calendar workflow", () => {
         {
           headers: c.headers,
           params: { projectId: project.id },
-        }
+        },
       );
       expect(removed.ok(), await removed.text()).toBeTruthy();
     }

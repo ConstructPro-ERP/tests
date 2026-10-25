@@ -58,15 +58,15 @@ export interface ProjectContext {
   createProject(overrides?: Record<string, unknown>): Promise<Project>;
   createMilestone(
     projectId: string,
-    overrides?: Record<string, unknown>
+    overrides?: Record<string, unknown>,
   ): Promise<Milestone>;
   createTask(
     projectId: string,
-    overrides?: Record<string, unknown>
+    overrides?: Record<string, unknown>,
   ): Promise<Task>;
   createExpense(
     projectId: string,
-    overrides?: Record<string, unknown>
+    overrides?: Record<string, unknown>,
   ): Promise<Expense>;
   track(kind: "task" | "milestone" | "expense" | "project", id: string): void;
 }
@@ -83,10 +83,10 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
     const token = await login(request, email, password);
     const headers = bearer(token);
     const me = await expectOk<{ id: string; role: string }>(
-      await request.get(url("/auth/me"), { headers })
+      await request.get(url("/auth/me"), { headers }),
     );
     expect(me.role, "Project E2E requires an ADMIN credential pair").toBe(
-      "ADMIN"
+      "ADMIN",
     );
     expect(me.id).toMatch(/^[0-9a-f-]{36}$/i);
 
@@ -95,7 +95,7 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
       kind: "task" | "milestone" | "expense" | "project";
     }> = [];
     async function checked<T>(
-      response: APIResponse | Promise<APIResponse>
+      response: APIResponse | Promise<APIResponse>,
     ): Promise<T> {
       return expectOk<T>(await response);
     }
@@ -134,7 +134,7 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
             milestoneName: unique("Milestone"),
             weight: 5,
             ...overrides,
-          }
+          },
         );
         context.track("milestone", result.id);
         return result;
@@ -156,7 +156,7 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
             category: "MATERIAL",
             expenseDate: "2026-10-10T00:00:00.000Z",
             ...overrides,
-          }
+          },
         );
         context.track("expense", result.id);
         return result;
@@ -175,7 +175,7 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
       .map((item) => item.path.slice("/projects/".length));
     async function sweep(
       projectId: string,
-      resource: "task" | "expense" | "milestone"
+      resource: "task" | "expense" | "milestone",
     ) {
       const listPath =
         resource === "task"
@@ -199,7 +199,7 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
           });
           if (!response.ok()) {
             errors.push(
-              `${listPath}: cleanup listing HTTP ${response.status()}`
+              `${listPath}: cleanup listing HTTP ${response.status()}`,
             );
             break;
           }
@@ -239,7 +239,7 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
           const response = await request.delete(url(item.path), { headers });
           if (!response.ok() && response.status() !== 404) {
             errors.push(
-              `${item.path}: HTTP ${response.status()} ${await response.text()}`
+              `${item.path}: HTTP ${response.status()} ${await response.text()}`,
             );
           }
         } catch (error) {
@@ -249,7 +249,7 @@ export const test = base.extend<{ projectContext: ProjectContext }>({
     }
     expect(
       errors,
-      "E2E data cleanup failed; inspect isolated test environment"
+      "E2E data cleanup failed; inspect isolated test environment",
     ).toEqual([]);
   },
 });

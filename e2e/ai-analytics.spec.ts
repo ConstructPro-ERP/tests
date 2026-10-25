@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { apiBaseUrl, bearer, expectOk, login, requiredEnv } from "./support/api";
+import {
+  apiBaseUrl,
+  bearer,
+  expectOk,
+  login,
+  requiredEnv,
+} from "./support/api";
 import type { RiskPrediction } from "./support/contracts";
 
 test.describe("ERP data to AI analytics workflow", () => {
@@ -19,7 +25,9 @@ test.describe("ERP data to AI analytics workflow", () => {
     expect(["LOW", "MEDIUM", "HIGH"]).toContain(prediction.projectRiskLevel);
     expect(["LOW", "MEDIUM", "HIGH"]).toContain(prediction.paymentDelayRisk);
     expect(["LOW", "MEDIUM", "HIGH"]).toContain(prediction.milestoneDelayRisk);
-    expect(["DECLINING", "STABLE", "GROWING"]).toContain(prediction.revenueTrend);
+    expect(["DECLINING", "STABLE", "GROWING"]).toContain(
+      prediction.revenueTrend,
+    );
     expect(["RULE_BASED", "AI_PROVIDER", "SAFE_FALLBACK"]).toContain(
       prediction.predictionSource,
     );
@@ -40,10 +48,16 @@ test.describe("ERP data to AI analytics workflow", () => {
     await projectSelect.selectOption(projectId);
     await page.getByRole("button", { name: "Run Analysis" }).click();
 
-    await expect(page.getByRole("heading", { name: `AI prediction: ${prediction.projectName}` })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: `AI prediction: ${prediction.projectName}`,
+      }),
+    ).toBeVisible();
     await expect(page.getByText("Payment-delay risk")).toBeVisible();
     await expect(page.getByText("Milestone-delay risk")).toBeVisible();
     await expect(page.getByText("Revenue trend")).toBeVisible();
-    await expect(page.getByText(prediction.recommendedAction, { exact: true })).toBeVisible();
+    await expect(
+      page.getByText(prediction.recommendedAction, { exact: true }),
+    ).toBeVisible();
   });
 });

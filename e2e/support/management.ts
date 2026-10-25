@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { test as base, expect, type Page, type Response } from "@playwright/test";
+import {
+  test as base,
+  expect,
+  type Page,
+  type Response,
+} from "@playwright/test";
 import { apiBaseUrl, bearer, expectOk, login, requiredEnv } from "./api";
 import { adminCredentials } from "./admin-credentials";
 
@@ -33,7 +38,9 @@ export function uniqueName(prefix: string): string {
 
 export const test = base.extend<{
   adminHeaders: ReturnType<typeof bearer>;
-  records: { track: <T extends { id: string }>(resource: Resource, record: T) => T };
+  records: {
+    track: <T extends { id: string }>(resource: Resource, record: T) => T;
+  };
 }>({
   adminHeaders: async ({ request }, use) => {
     const { email, password } = adminCredentials();
@@ -46,7 +53,12 @@ export const test = base.extend<{
     );
     const roles = [profile.role, ...(profile.roles ?? [])]
       .filter((role): role is string => typeof role === "string")
-      .map(role => role.trim().toUpperCase().replace(/[\s-]+/g, "_"));
+      .map((role) =>
+        role
+          .trim()
+          .toUpperCase()
+          .replace(/[\s-]+/g, "_"),
+      );
     expect(
       roles,
       `Management E2E requires an ADMIN account; the configured account has role(s): ${roles.join(", ") || "unassigned"}. ` +
@@ -59,7 +71,10 @@ export const test = base.extend<{
     const created: { resource: Resource; id: string }[] = [];
     await use({
       track(resource, record) {
-        expect(record.id, `created ${resource} record must have an ID`).toBeTruthy();
+        expect(
+          record.id,
+          `created ${resource} record must have an ID`,
+        ).toBeTruthy();
         created.push({ resource, id: record.id });
         return record;
       },
@@ -71,7 +86,9 @@ export const test = base.extend<{
       const url = `${apiBaseUrl()}/${resource}/${id}`;
       try {
         if (resource === "users") {
-          const user = await expectOk<UserRecord>(await request.get(url, { headers: adminHeaders }));
+          const user = await expectOk<UserRecord>(
+            await request.get(url, { headers: adminHeaders }),
+          );
           if (user.status === "INACTIVE") continue;
         }
         const response = await request.delete(url, { headers: adminHeaders });
@@ -100,13 +117,18 @@ export async function loginAdminUI(page: Page) {
 // and exact API path, excluding unrelated list/detail requests.
 export function mutation(page: Page, path: string, method: string) {
   const pathname = new URL(`${apiBaseUrl()}${path}`).pathname;
-  return page.waitForResponse(response =>
-    new URL(response.url()).pathname === pathname && response.request().method() === method,
+  return page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === pathname &&
+      response.request().method() === method,
   );
 }
 
 export async function uiRecord<T>(response: Response): Promise<T> {
-  expect(response.ok(), `UI request failed: HTTP ${response.status()}`).toBeTruthy();
+  expect(
+    response.ok(),
+    `UI request failed: HTTP ${response.status()}`,
+  ).toBeTruthy();
   const json = await response.json();
   return (json.data ?? json) as T;
 }

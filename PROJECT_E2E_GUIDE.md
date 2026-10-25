@@ -45,21 +45,21 @@ If you're **already on the correct branch**, do not recreate it; start from `git
 
 Copy `tests/.env.example` to `tests/.env` and replace the placeholders with **working staging credentials** and URLs. The suite requires a dedicated disposable staging database. Do not run its state-changing tests against production or shared demonstration data. Never commit `.env`.
 
-| Variable | Required? | Meaning |
-|---|---|---|
-| `API_BASE_URL` | Required | Deployed Gateway URL. Existing helper adds `/api` if missing. |
-| `FRONTEND_BASE_URL` | Required for browser tests | Deployed Next.js frontend URL. Browser tests skip without it. |
-| `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD` | Required unless fallback is ADMIN | Existing active ADMIN account. Both empty allows ADMIN credentials from `E2E_USER_EMAIL` and `E2E_USER_PASSWORD`. |
-| `E2E_ACCOUNTANT_EMAIL`, `E2E_ACCOUNTANT_PASSWORD` | Optional | Active ACCOUNTANT user; enables Accountant API/UI cases. |
-| `E2E_PROJECT_MANAGER_EMAIL`, `E2E_PROJECT_MANAGER_PASSWORD` | Optional | Active PROJECT_MANAGER; enables assigned/foreign-project API and browser cases. |
-| `E2E_ALTERNATE_PROJECT_MANAGER_ID` | Optional | Valid active Admin/PM UUID for assignment case. |
-| `E2E_DOCUMENT_PROJECT_ID` | Optional | **Dedicated mutable staging project**, not a fixture-created one, because document metadata is soft-deleted. |
-| `E2E_DOCUMENT_CATEGORY_ID` | Optional | Existing active document category UUID. |
-| `E2E_ENABLE_DOCUMENT_UPLOADS=true` | Optional, explicit opt-in | Runs real multipart storage tests, browser document upload, and deletion. |
-| `E2E_ENABLE_DIRECT_DOCUMENT_UPLOADS=true` | Optional, explicit opt-in | Also performs a signed **4 MiB+** raw-file upload through Cloudinary. Requires previous upload flag. |
-| `E2E_ENABLE_CALENDAR_WRITES=true` | Optional, explicit opt-in | Creates/updates/deletes an event on the ADMIN user's connected **test** Google Calendar. |
-| `E2E_LEAD_ID` | Optional, required for lifecycle conversion | Existing disposable valid lead ID accepted by quotation creation. Not the example placeholder UUID. |
-| `E2E_ALLOW_PERSISTENT_LIFECYCLE_WRITES=true` | Optional, explicit opt-in | Enables irreversible quotation conversion, completed/cancelled project and closed-project tests; **requires a staging DB that you can reset**. |
+| Variable                                                    | Required?                                   | Meaning                                                                                                                                        |
+| ----------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `API_BASE_URL`                                              | Required                                    | Deployed Gateway URL. Existing helper adds `/api` if missing.                                                                                  |
+| `FRONTEND_BASE_URL`                                         | Required for browser tests                  | Deployed Next.js frontend URL. Browser tests skip without it.                                                                                  |
+| `E2E_ADMIN_EMAIL`, `E2E_ADMIN_PASSWORD`                     | Required unless fallback is ADMIN           | Existing active ADMIN account. Both empty allows ADMIN credentials from `E2E_USER_EMAIL` and `E2E_USER_PASSWORD`.                              |
+| `E2E_ACCOUNTANT_EMAIL`, `E2E_ACCOUNTANT_PASSWORD`           | Optional                                    | Active ACCOUNTANT user; enables Accountant API/UI cases.                                                                                       |
+| `E2E_PROJECT_MANAGER_EMAIL`, `E2E_PROJECT_MANAGER_PASSWORD` | Optional                                    | Active PROJECT_MANAGER; enables assigned/foreign-project API and browser cases.                                                                |
+| `E2E_ALTERNATE_PROJECT_MANAGER_ID`                          | Optional                                    | Valid active Admin/PM UUID for assignment case.                                                                                                |
+| `E2E_DOCUMENT_PROJECT_ID`                                   | Optional                                    | **Dedicated mutable staging project**, not a fixture-created one, because document metadata is soft-deleted.                                   |
+| `E2E_DOCUMENT_CATEGORY_ID`                                  | Optional                                    | Existing active document category UUID.                                                                                                        |
+| `E2E_ENABLE_DOCUMENT_UPLOADS=true`                          | Optional, explicit opt-in                   | Runs real multipart storage tests, browser document upload, and deletion.                                                                      |
+| `E2E_ENABLE_DIRECT_DOCUMENT_UPLOADS=true`                   | Optional, explicit opt-in                   | Also performs a signed **4 MiB+** raw-file upload through Cloudinary. Requires previous upload flag.                                           |
+| `E2E_ENABLE_CALENDAR_WRITES=true`                           | Optional, explicit opt-in                   | Creates/updates/deletes an event on the ADMIN user's connected **test** Google Calendar.                                                       |
+| `E2E_LEAD_ID`                                               | Optional, required for lifecycle conversion | Existing disposable valid lead ID accepted by quotation creation. Not the example placeholder UUID.                                            |
+| `E2E_ALLOW_PERSISTENT_LIFECYCLE_WRITES=true`                | Optional, explicit opt-in                   | Enables irreversible quotation conversion, completed/cancelled project and closed-project tests; **requires a staging DB that you can reset**. |
 
 When a role or external integration has not been configured, the related test is intentionally **skipped**. Review the skipped count before claiming complete execution.
 
@@ -106,18 +106,18 @@ Inspect the HTML report with `npx playwright show-report`. A non-zero exit code 
 
 ## Coverage map
 
-| Feature | Files | Exercised scenarios |
-|---|---|---|
-| Project CRUD and pagination | `projects.spec.ts`, `project-boundaries.spec.ts` | Create, list, search, status/manager filters, sorting, update, delete, invalid IDs, date ranges, budgets, invalid status transitions, dependency deletion. |
-| Project lifecycle | `project-lifecycle.spec.ts` **opt-in** | Quotation conversion, duplicate conversion prevention, ACTIVE→ON_HOLD→ACTIVE→COMPLETED, milestone completion requirement, PLANNING→CANCELLED, terminal state checks. |
-| Tasks | `tasks.spec.ts`, `project-boundaries.spec.ts` | CRUD, assignment/unassignment, status, global and project filters, search, pagination, assignees, due-date limits, invalid milestone/project relationships. |
-| Milestones | `milestones.spec.ts`, `project-boundaries.spec.ts`, `project-concurrency.spec.ts` | CRUD, weight and progress validation, derived state/completed timestamp/delay, weighted project progress, task-linked deletion block, concurrent writes. |
-| Expenses | `expenses.spec.ts`, `project-concurrency.spec.ts` | CRUD, amounts/precision, creator attribution, category/date filters, pagination, summary, nullable fields, invalid amounts, concurrent totals. |
-| Documents | `documents.spec.ts`, `projects-ui.spec.ts` **storage opt-in for real files** | Category operations, invalid content/signatures, file-size limits, metadata rules, actual multipart/direct Cloudinary uploads, search, update, download authorization, deletion, browser upload cycle. |
-| Security | `authorization.spec.ts`, `project-manager.spec.ts`, `projects-ui.spec.ts` | Anonymous 401, role 403, Accountant rights, Project Manager assigned/unassigned project isolation, read-only vs writable UI controls. |
-| Browser workflows | `projects-ui.spec.ts` | Dashboard/details/tab navigation, project creation/edit/validation, milestone creation/progress/delete, task create/edit/delete, expense create/edit/delete, documents and calendar UI. |
-| Calendar | `project-calendar.spec.ts` **write opt-in** | Connection status and a real project-scoped Google event create/list/update/delete round-trip. |
-| Cross-module | `workflows.spec.ts`, `project-lifecycle.spec.ts` | Milestone weight aggregation, task completion independence, project/quotation/task/expense associations and closure rules. |
+| Feature                     | Files                                                                             | Exercised scenarios                                                                                                                                                                                    |
+| --------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Project CRUD and pagination | `projects.spec.ts`, `project-boundaries.spec.ts`                                  | Create, list, search, status/manager filters, sorting, update, delete, invalid IDs, date ranges, budgets, invalid status transitions, dependency deletion.                                             |
+| Project lifecycle           | `project-lifecycle.spec.ts` **opt-in**                                            | Quotation conversion, duplicate conversion prevention, ACTIVE→ON_HOLD→ACTIVE→COMPLETED, milestone completion requirement, PLANNING→CANCELLED, terminal state checks.                                   |
+| Tasks                       | `tasks.spec.ts`, `project-boundaries.spec.ts`                                     | CRUD, assignment/unassignment, status, global and project filters, search, pagination, assignees, due-date limits, invalid milestone/project relationships.                                            |
+| Milestones                  | `milestones.spec.ts`, `project-boundaries.spec.ts`, `project-concurrency.spec.ts` | CRUD, weight and progress validation, derived state/completed timestamp/delay, weighted project progress, task-linked deletion block, concurrent writes.                                               |
+| Expenses                    | `expenses.spec.ts`, `project-concurrency.spec.ts`                                 | CRUD, amounts/precision, creator attribution, category/date filters, pagination, summary, nullable fields, invalid amounts, concurrent totals.                                                         |
+| Documents                   | `documents.spec.ts`, `projects-ui.spec.ts` **storage opt-in for real files**      | Category operations, invalid content/signatures, file-size limits, metadata rules, actual multipart/direct Cloudinary uploads, search, update, download authorization, deletion, browser upload cycle. |
+| Security                    | `authorization.spec.ts`, `project-manager.spec.ts`, `projects-ui.spec.ts`         | Anonymous 401, role 403, Accountant rights, Project Manager assigned/unassigned project isolation, read-only vs writable UI controls.                                                                  |
+| Browser workflows           | `projects-ui.spec.ts`                                                             | Dashboard/details/tab navigation, project creation/edit/validation, milestone creation/progress/delete, task create/edit/delete, expense create/edit/delete, documents and calendar UI.                |
+| Calendar                    | `project-calendar.spec.ts` **write opt-in**                                       | Connection status and a real project-scoped Google event create/list/update/delete round-trip.                                                                                                         |
+| Cross-module                | `workflows.spec.ts`, `project-lifecycle.spec.ts`                                  | Milestone weight aggregation, task completion independence, project/quotation/task/expense associations and closure rules.                                                                             |
 
 ## Remaining coverage limitations
 
