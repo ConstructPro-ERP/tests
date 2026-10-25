@@ -2,9 +2,9 @@ import { test, expect, type Route } from "@playwright/test";
 import { apiBaseUrl } from "../support/api";
 import { mockLeads, mockInitialQuotations } from "./quotation.fixtures";
 
-const apiOrigin = new URL(apiBaseUrl()).origin;
-const quotationsPath = new URL(`${apiBaseUrl()}/quotations`).pathname;
-const leadsPath = new URL(`${apiBaseUrl()}/leads`).pathname;
+let apiOrigin: string;
+let quotationsPath: string;
+let leadsPath: string;
 
 function matches(url: URL, pathname: string): boolean {
   return url.origin === apiOrigin && url.pathname === pathname;
@@ -39,6 +39,12 @@ async function fulfillJson(
 
 test.describe("Quotations Dashboard — Frontend Integration", () => {
   test.beforeEach(async ({ page }) => {
+    const baseUrl = apiBaseUrl();
+
+    apiOrigin = new URL(baseUrl).origin;
+    quotationsPath = new URL(`${baseUrl}/quotations`).pathname;
+    leadsPath = new URL(`${baseUrl}/leads`).pathname;
+
     await page.route(
       (url) => matches(url, quotationsPath),
       async (route) => {
