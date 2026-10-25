@@ -373,12 +373,16 @@ test.describe("Quotations Dashboard — Frontend Integration", () => {
     );
   });
 
-  test("FE-07: shows a conflict error on approval", async ({ page }) => {
+  test("FE-07: shows an invalid status transition error on approval", async ({
+    page,
+  }) => {
+    const approvalPath = `${quotationsPath}/quo-mock-001/direct-approve`;
+
     await page.route(
-      (url) => matches(url, `${quotationsPath}/quo-mock-001/direct-approve`),
+      (url) => matches(url, approvalPath),
       async (route) => {
         await route.fulfill({
-          status: 409,
+          status: 400,
           contentType: "application/json",
           headers: {
             "Access-Control-Allow-Origin": new URL(
@@ -388,15 +392,24 @@ test.describe("Quotations Dashboard — Frontend Integration", () => {
           },
           body: JSON.stringify({
             success: false,
+            statusCode: 400,
             code: "INVALID_STATUS_TRANSITION",
             message:
-              "This quotation cannot transition to the requested status.",
+              "Cannot approve quotation with status DRAFT. Only PENDING_APPROVAL quotations can be approved.",
           }),
         });
       },
     );
 
-    const card = page.locator("article").filter({ hasText: "quo-mock-001" });
+    const card = page.locator("article").filter({
+      hasText: "quo-mock-001",
+    });
+
+    const approvalResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === "PATCH" &&
+        matches(new URL(response.url()), approvalPath),
+    );
 
     await card
       .getByRole("button", {
@@ -404,9 +417,16 @@ test.describe("Quotations Dashboard — Frontend Integration", () => {
       })
       .click();
 
-    await expect(page.locator('[aria-live="polite"]')).toContainText(
-      "This quotation cannot transition to the requested status.",
-    );
+    const response = await approvalResponse;
+
+    expect(response.status()).toBe(400);
+
+    await expect(
+      page.getByText(
+        "This quotation cannot transition to the requested status.",
+        { exact: true },
+      ),
+    ).toBeVisible();
   });
 
   test("FE-08: requests a quotation PDF", async ({ page }) => {

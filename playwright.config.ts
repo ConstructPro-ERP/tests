@@ -1,12 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import "dotenv/config";
 
-// Each Playwright invocation creates a separate private directory.
-// Concurrent Playwright processes cannot overwrite each other's tokens.
-const authDir = mkdtempSync(path.join(tmpdir(), "constructpro-e2e-auth-"));
+const authDir = path.resolve(
+  process.env.E2E_AUTH_DIR ?? path.join(__dirname, "playwright", ".auth"),
+);
 
 process.env.E2E_AUTH_DIR = authDir;
 
@@ -17,7 +15,6 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-
   workers: process.env.CI ? 1 : undefined,
 
   reporter: process.env.CI
@@ -38,19 +35,19 @@ export default defineConfig({
     {
       name: "auth-root",
       testMatch: "**/auth.setup.ts",
-      grep: /^prepare root authentication$/,
+      grep: /prepare root authentication$/,
       use: { ...chromium },
     },
     {
       name: "auth-projects",
       testMatch: "**/auth.setup.ts",
-      grep: /^prepare projects authentication$/,
+      grep: /prepare projects authentication$/,
       use: { ...chromium },
     },
     {
       name: "auth-quotations",
       testMatch: "**/auth.setup.ts",
-      grep: /^prepare quotations authentication$/,
+      grep: /prepare quotations authentication$/,
       use: { ...chromium },
     },
     {
@@ -83,6 +80,5 @@ export default defineConfig({
     },
   ],
 
-  globalTeardown: "./e2e/auth.cleanup.ts",
   outputDir: "test-results",
 });

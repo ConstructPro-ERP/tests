@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from "@playwright/test";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { apiBaseUrl, bearer, expectOk, requiredEnv } from "./support/api";
 import { adminCredentials } from "./support/admin-credentials";
 import {
@@ -40,6 +41,13 @@ function optionalCredentials(
 
   return { email, password };
 }
+
+test.beforeAll(async () => {
+  await mkdir(path.dirname(authStatePath("root", "admin")), {
+    recursive: true,
+    mode: 0o700,
+  });
+});
 
 async function saveEmptyState(scope: AuthScope, role: AuthRole): Promise<void> {
   await writeFile(
